@@ -1,8 +1,25 @@
+import Header from '../components/landing/Header';
+import Hero from '../components/landing/Hero';
+import Surfaces from '../components/landing/Surfaces';
+import HowItWorks from '../components/landing/HowItWorks';
+import Features from '../components/landing/Features';
+import LogoMarquee from '../components/landing/LogoMarquee';
+import CTA from '../components/landing/CTA';
+import Footer from '../components/landing/Footer';
+
 export default function Home() {
   return (
-    <main style={{ padding: 48, fontFamily: 'var(--font-sans)' }}>
-      <h1 style={{ fontFamily: 'var(--font-pixel)' }}>Yougrep</h1>
-      <p style={{ color: 'var(--muted)' }}>Boot placeholder — full landing page lands in Phase 2.</p>
-    </main>
+    <>
+      <Header />
+      <main id="main-content">
+        <Hero />
+        <Surfaces />
+        <HowItWorks />
+        <Features />
+        <LogoMarquee />
+        <CTA />
+      </main>
+      <Footer />
+    </>
   );
 }

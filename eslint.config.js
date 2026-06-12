@@ -13,6 +13,7 @@ export default [
       '**/.data/**',
       '**/*.config.js',
       '**/*.config.mjs',
+      '**/next-env.d.ts',
     ],
   },
   js.configs.recommended,

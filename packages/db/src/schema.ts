@@ -290,9 +290,10 @@ export const interviewPlans = pgTable(
       .references(() => jobChannels.id, { onDelete: 'cascade' }),
     roleBrief: text('role_brief').notNull(),
     rubric: jsonb('rubric').$type<{ criteria: { key: string; label: string; weight: number }[] }>(),
-    questionPlan: jsonb('question_plan').$type<
-      { id: string; prompt: string; kind: string; payload?: Record<string, unknown> }[]
-    >(),
+    questionPlan:
+      jsonb('question_plan').$type<
+        { id: string; prompt: string; kind: string; payload?: Record<string, unknown> }[]
+      >(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

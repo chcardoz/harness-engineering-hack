@@ -16,23 +16,24 @@
 **Yougrep** is a recruiter-agent workspace for companies hiring technical talent. It feels like a Slack workspace where **every channel is one job opening**, and each channel has a long-running agent that knows the role, company context (via connectors), candidates, and interview history.
 
 Two surfaces:
+
 - **Recruiter workspace** — Slack-like dashboard: create job channels, talk to the channel agent, draft listings, publish to the org's own job board, review candidates.
 - **Candidate interview** — from the org's public job board, a one-click entry into a live voice interview (GPT Realtime 2 over WebRTC) with generated UI exercises.
 
 ## Stack
 
-| Role | Choice |
-| --- | --- |
-| Language / app | TypeScript, Next.js (web), Node worker |
-| Auth + tenancy | Better Auth (Organization plugin) |
-| Source of truth | Postgres |
-| Generated UI | OpenUI (Thesys `openui-lang`) |
-| Agent control plane | Guild AI (`guild.ai`) |
-| LLM gateway (text) | TrueFoundry (OpenAI-compatible) |
-| Voice interview | OpenAI Realtime API, `gpt-realtime-2`, WebRTC + backend ephemeral credential |
-| Connectors | Airbyte — **read-only** (Notion/GitHub/Slack context; optional Greenhouse/Ashby import) |
-| Hosting | Render (Blueprint `render.yaml`: `web`, `worker`, `cron`, Postgres, Key Value) |
-| Analytics (optional) | ClickHouse (traces/events only; not app state) |
+| Role                 | Choice                                                                                  |
+| -------------------- | --------------------------------------------------------------------------------------- |
+| Language / app       | TypeScript, Next.js (web), Node worker                                                  |
+| Auth + tenancy       | Better Auth (Organization plugin)                                                       |
+| Source of truth      | Postgres                                                                                |
+| Generated UI         | OpenUI (Thesys `openui-lang`)                                                           |
+| Agent control plane  | Guild AI (`guild.ai`)                                                                   |
+| LLM gateway (text)   | TrueFoundry (OpenAI-compatible)                                                         |
+| Voice interview      | OpenAI Realtime API, `gpt-realtime-2`, WebRTC + backend ephemeral credential            |
+| Connectors           | Airbyte — **read-only** (Notion/GitHub/Slack context; optional Greenhouse/Ashby import) |
+| Hosting              | Render (Blueprint `render.yaml`: `web`, `worker`, `cron`, Postgres, Key Value)          |
+| Analytics (optional) | ClickHouse (traces/events only; not app state)                                          |
 
 ## Key Architecture Decisions (don't violate)
 
