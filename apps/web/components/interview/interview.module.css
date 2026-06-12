@@ -1,0 +1,159 @@
+/* Candidate interview — focused, single-column, calm. */
+
+.page {
+  min-height: 100dvh;
+  background: var(--paper);
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(251, 251, 249, 0.85);
+  backdrop-filter: saturate(180%) blur(10px);
+  border-bottom: 1px solid var(--line);
+  padding: 12px 20px;
+}
+.topbarInner {
+  max-width: 680px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.brand {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.brand .grep {
+  color: var(--accent);
+}
+.roleMeta {
+  text-align: right;
+  min-width: 0;
+}
+.roleName {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.orgName {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.progressWrap {
+  max-width: 680px;
+  margin: 14px auto 0;
+  width: 100%;
+  padding: 0 20px;
+}
+.progressMeta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.progressTrack {
+  height: 5px;
+  background: var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.progressBar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-bright) 100%);
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.stage {
+  flex: 1;
+  width: 100%;
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 28px 20px 64px;
+}
+
+.intro {
+  text-align: center;
+  margin-bottom: 24px;
+}
+.introTitle {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0 0 6px;
+}
+.introText {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.agentLine {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+.agentAvatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--accent-wash);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.agentText {
+  font-size: 14px;
+  color: var(--ink-soft);
+  line-height: 1.6;
+  padding-top: 4px;
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 14px;
+  padding: 60px 0;
+}
+
+.error {
+  max-width: 480px;
+  margin: 80px auto;
+  text-align: center;
+  color: var(--muted);
+}
+.errorTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 8px;
+}
+
+.footer {
+  text-align: center;
+  padding: 18px;
+  font-size: 12px;
+  color: var(--muted-2);
+  border-top: 1px solid var(--line);
+}

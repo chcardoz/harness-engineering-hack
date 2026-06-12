@@ -120,6 +120,24 @@ export async function createInterviewSession(input: {
   return row;
 }
 
+/**
+ * Capability lookup by session id alone (NOT org-scoped). The session id is an
+ * unguessable UUID that acts as the bearer token for the public, unauthenticated
+ * candidate interview boundary. Use ONLY there; everywhere else use the
+ * org-scoped getInterviewSession.
+ */
+export async function getInterviewSessionByCapability(
+  sessionId: string,
+): Promise<InterviewSession | null> {
+  const db = getDb();
+  const [row] = await db
+    .select()
+    .from(interviewSessions)
+    .where(eq(interviewSessions.id, sessionId))
+    .limit(1);
+  return row ?? null;
+}
+
 export async function getInterviewSession(
   organizationId: string,
   sessionId: string,
