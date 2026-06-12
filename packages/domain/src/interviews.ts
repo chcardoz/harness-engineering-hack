@@ -229,6 +229,23 @@ export async function recordInterviewScore(input: {
   });
 }
 
+export async function listInterviewScores(
+  organizationId: string,
+  sessionId: string,
+): Promise<InterviewScore[]> {
+  const db = getDb();
+  return db
+    .select()
+    .from(interviewScores)
+    .where(
+      and(
+        eq(interviewScores.organizationId, organizationId),
+        eq(interviewScores.sessionId, sessionId),
+      ),
+    )
+    .orderBy(asc(interviewScores.createdAt));
+}
+
 /* ── Interview Result Packages ───────────────────────────────────────────── */
 
 export async function saveResultPackage(input: {

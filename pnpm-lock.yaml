@@ -108,6 +108,9 @@ importers:
       '@yougrep/integrations':
         specifier: workspace:*
         version: link:../integrations
+      '@yougrep/openui':
+        specifier: workspace:*
+        version: link:../openui
       zod:
         specifier: ^3.24.1
         version: 3.25.76

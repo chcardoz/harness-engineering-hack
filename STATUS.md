@@ -28,7 +28,9 @@ Legend: ⬜ todo · 🟡 in progress · ✅ done · 🧪 needs test/lint · ⛔ 
 - ✅ `packages/integrations` — guild / truefoundry / airbyte / openai-realtime adapters (real+stub) + fixtures + 16 contract tests
 - ✅ `packages/domain` — jobs, candidates, interviews, messages, connectors, postings (tenant-scoped) + 22 tenant-scoping tests
 - ✅ `packages/openui` — 17 components (recruiter + interview), OpenUIRenderer w/ validateNode fallback, fixtures (incl. malformed)
-- 🟡 `packages/agents` — job-channel + interview agents (Phase 1b, NEXT) · Gate green: lint/typecheck/38 tests/format ✅
+- ✅ `packages/agents` — job-channel agent (intent routing → OpenUI, draft/publish-with-confirm-gate, review/compare) + isolated interview agent (consent → scored question walk → result package) + scoring + rubric/plan builder + Guild-wrapped agent_runs tracing. 9 agent tests. Gate green: lint/typecheck/**47 tests**/format ✅
+  - NOTE: agents are deterministic planners; `narrate()` calls TrueFoundry but falls back to templates in stub mode (detects `[stub]` prefix). Interview agent imports ONLY plan+session domain fns (isolation enforced at module level).
+  - Added domain helpers: `getOrganizationById`/`getOrganizationBySlug` (orgs.ts), `listInterviewScores`.
 
 ## Phase 2 — Web app surfaces (mix; UI in main loop w/ agent-browser)
 
@@ -60,3 +62,4 @@ Legend: ⬜ todo · 🟡 in progress · ✅ done · 🧪 needs test/lint · ⛔ 
 - `Phase 0: monorepo foundation — config, db (PGlite/Drizzle), auth (Better Auth), web boot`
 - `Phase 1a: integrations, domain, openui packages + landing page`
 - `Landing: fix hero pixel font (Pixelify Sans via --font-pixel-src)`
+- `Phase 1b: agents package — job-channel + isolated interview agents (47 tests green)`
