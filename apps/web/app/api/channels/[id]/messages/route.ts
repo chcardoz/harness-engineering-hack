@@ -1,7 +1,7 @@
 import { requireMembership } from '@yougrep/auth';
 import { appendChannelMessage, getJobChannel } from '@yougrep/domain';
 import { runJobChannelAgent } from '@yougrep/agents';
-import type { OpenUIAction } from '@yougrep/openui';
+import type { OpenUIAction } from '@yougrep/openui/contract';
 import { currentOrgSession } from '../../../../../lib/session';
 import { errorResponse, json } from '../../../../../lib/http';
 

@@ -1,4 +1,4 @@
-import type { OpenUIDocument, OpenUIAction } from '@yougrep/openui';
+import type { OpenUIDocument, OpenUIAction } from '@yougrep/openui/contract';
 
 /**
  * Public contract for the Yougrep agents package.

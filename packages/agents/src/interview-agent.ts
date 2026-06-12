@@ -14,8 +14,8 @@ import {
   type InterviewResultPackage,
   type InterviewSession,
 } from '@yougrep/domain';
-import { doc, node, type OpenUIDocument, type OpenUINode } from '@yougrep/openui';
-import type { OpenUIAction } from '@yougrep/openui';
+import { doc, node, type OpenUIDocument, type OpenUINode } from '@yougrep/openui/contract';
+import type { OpenUIAction } from '@yougrep/openui/contract';
 import { INTERVIEW_SYSTEM_PROMPT } from './prompts';
 import { criterionLabel } from './rubric';
 import { scoreAnswer } from './scoring';

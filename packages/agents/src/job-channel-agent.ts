@@ -15,7 +15,7 @@ import {
   upsertJobListing,
   type Candidate,
 } from '@yougrep/domain';
-import { doc, node, type OpenUIDocument, type OpenUINode } from '@yougrep/openui';
+import { doc, node, type OpenUIDocument, type OpenUINode } from '@yougrep/openui/contract';
 import { distillJobBrief, gatherConnectorContext, type DistilledBrief } from './connector-context';
 import { classifyIntent } from './intent';
 import { JOB_CHANNEL_SYSTEM_PROMPT } from './prompts';

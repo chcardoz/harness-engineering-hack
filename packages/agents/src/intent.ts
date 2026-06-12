@@ -1,4 +1,4 @@
-import type { OpenUIAction } from '@yougrep/openui';
+import type { OpenUIAction } from '@yougrep/openui/contract';
 import type { JobChannelIntent } from './types';
 
 /**

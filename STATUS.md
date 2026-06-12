@@ -35,13 +35,15 @@ Legend: ⬜ todo · 🟡 in progress · ✅ done · 🧪 needs test/lint · ⛔ 
 ## Phase 2 — Web app surfaces (mix; UI in main loop w/ agent-browser)
 
 - ✅ Landing page — clean, Geist + Pixelify hero wordmark (green "grep" accent), motion animations, connector/company/stack logos, footer. Verified in agent-browser.
-- ⬜ Auth pages (sign up / sign in / create org)
-- ⬜ Recruiter workspace shell (Slack-like sidebar, channel list, create channel)
-- ⬜ Channel chat + agent + OpenUI rendering + publish flow (confirm gate)
-- ⬜ Public job board `/c/{org-slug}` + `/c/{org-slug}/{job-slug}`
-- ⬜ Candidate apply + text interview (OpenUI exercises) + email gate
-- ⬜ Recruiter review sidebar (candidates, summaries, comparison)
+- ✅ Auth pages (sign up / sign in / create org) — verified end-to-end in agent-browser (signup → onboarding → workspace).
+- ✅ Recruiter workspace shell (Slack-like sidebar, channel list, inline create channel).
+- ✅ Channel chat + agent + OpenUI rendering + publish flow (confirm gate) — agent distills brief, drafts listing, publishes through an explicit `alertdialog` confirm gate.
+- ✅ Public job board `/c/{org-slug}` + `/c/{org-slug}/{job-slug}` — published role renders; apply panel mints interview session.
+- ✅ Candidate apply + text interview (OpenUI exercises) + email gate — consent → self-rating → MVCC → SQL editor → replication architecture → timed exercise → auto-finalized result package.
+- ✅ Recruiter review sidebar (candidates, pipeline, scorecards, rubric breakdown) — Marco Reyes 98/100 "Strong yes" surfaced after interview.
 - ⬜ Voice interview (GPT Realtime 2 WebRTC, ephemeral cred) — stretch
+
+  - **FIX (server/client boundary):** server routes imported `@yougrep/agents` → `@yougrep/openui` barrel, which re-exports the React **client** component libraries (`useState`) — pulling client components into a server-only API route → 500 on channel create. Added a server-safe `@yougrep/openui/contract` subpath (types + `doc`/`node`/`validateNode` only, zod-only deps) and pointed all server-side agent/route imports at it. Caught live in the agent-browser walkthrough.
 
 ## Phase 3 — Worker, infra, polish
 
@@ -51,9 +53,9 @@ Legend: ⬜ todo · 🟡 in progress · ✅ done · 🧪 needs test/lint · ⛔ 
 
 ## Phase 4 — Quality gates (MAIN LOOP)
 
-- ⬜ Typecheck + lint + format across repo; fix all
-- ⬜ Unit + integration + contract tests pass
-- ⬜ agent-browser walkthrough of full demo flow (ONE session)
+- ✅ Typecheck + lint + format across repo; fix all (both typechecks, eslint --max-warnings 0, prettier --check clean)
+- ✅ Unit + integration + contract tests pass (47 tests)
+- ✅ agent-browser walkthrough of full demo flow (ONE session) — signup → org → channel → draft → publish (confirm gate) → board → apply → interview (5 exercises) → review scorecard. Caught + fixed the server/client boundary bug above.
 - ⬜ web-design-guidelines audit on changed UI; fix
 - ⬜ Final commit + README
 
@@ -63,3 +65,5 @@ Legend: ⬜ todo · 🟡 in progress · ✅ done · 🧪 needs test/lint · ⛔ 
 - `Phase 1a: integrations, domain, openui packages + landing page`
 - `Landing: fix hero pixel font (Pixelify Sans via --font-pixel-src)`
 - `Phase 1b: agents package — job-channel + isolated interview agents (47 tests green)`
+- `Phase 2: web surfaces — auth, workspace, channel agent, board, interview, review`
+- `Fix: server-safe @yougrep/openui/contract subpath (keep client components out of server routes)`

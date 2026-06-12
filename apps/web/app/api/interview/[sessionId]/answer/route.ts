@@ -1,7 +1,7 @@
 import { ensureMigrated } from '@yougrep/db';
 import { getInterviewSessionByCapability } from '@yougrep/domain';
 import { submitInterviewAnswer } from '@yougrep/agents';
-import type { OpenUIAction } from '@yougrep/openui';
+import type { OpenUIAction } from '@yougrep/openui/contract';
 import { errorResponse, json } from '../../../../../lib/http';
 
 export const runtime = 'nodejs';
