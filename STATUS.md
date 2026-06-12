@@ -60,7 +60,7 @@ Legend: ⬜ todo · 🟡 in progress · ✅ done · 🧪 needs test/lint · ⛔ 
 - ✅ Unit + integration + contract tests pass (47 tests)
 - ✅ agent-browser walkthrough of full demo flow (ONE session) — signup → org → channel → draft → publish (confirm gate) → board → apply → interview (5 exercises) → review scorecard. Caught + fixed the server/client boundary bug above.
 - ✅ web-design-guidelines audit (Web Interface Guidelines) on changed UI; fixes landed. Already strong (global `:focus-visible` ring, `prefers-reduced-motion`, labeled forms, `aria-invalid`/`role="alert"`, semantic OpenUI components confirmed via a11y tree). Fixed: `transition: all` → explicit props; focus-first-error + `inputMode`/`spellCheck={false}` on the apply email; `role="progressbar"` + `aria-valuenow` on interview progress; `aria-live` on interview loading; `aria-hidden` on decorative Phosphor icons (Phosphor renders role-less svg, no default hiding); `role="status"` + `aria-label` on the chat typing indicator.
-- ⬜ Final commit + README
+- ✅ Final commit + README (root `README.md`: product, 1-minute quickstart w/ demo login, architecture diagram, monorepo/stack tables, dev loop, Render notes)
 
 ## Git commits (landed)
 
