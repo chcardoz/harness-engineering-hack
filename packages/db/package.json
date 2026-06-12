@@ -18,7 +18,11 @@
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.2.17",
+    "@yougrep/agents": "workspace:*",
+    "@yougrep/auth": "workspace:*",
     "@yougrep/config": "workspace:*",
+    "@yougrep/domain": "workspace:*",
+    "@yougrep/openui": "workspace:*",
     "drizzle-orm": "^0.38.3"
   },
   "devDependencies": {

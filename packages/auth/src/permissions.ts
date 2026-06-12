@@ -1,5 +1,27 @@
-import { getDb, member, organization, eq, and } from '@yougrep/db';
+import { getDb, member, organization, eq, and, asc } from '@yougrep/db';
 import { auth } from './auth';
+
+/**
+ * The org id for a fresh session. Prefer Better Auth's active organization; if
+ * none is set (e.g. a returning user whose session was recreated, or an account
+ * provisioned outside the create-org flow such as the demo seed), fall back to
+ * the user's oldest membership. Still membership-gated — we only ever pick an
+ * org the user actually belongs to.
+ */
+async function resolveOrganizationId(
+  userId: string,
+  activeOrganizationId: string | null | undefined,
+): Promise<string | null> {
+  if (activeOrganizationId) return activeOrganizationId;
+  const db = getDb();
+  const rows = await db
+    .select({ id: member.organizationId })
+    .from(member)
+    .where(eq(member.userId, userId))
+    .orderBy(asc(member.createdAt))
+    .limit(1);
+  return rows[0]?.id ?? null;
+}
 
 export type SessionContext = {
   userId: string;
@@ -20,7 +42,10 @@ export async function getSessionContext(headers: Headers): Promise<SessionContex
     userId: result.user.id,
     email: result.user.email,
     name: result.user.name,
-    organizationId: result.session.activeOrganizationId ?? null,
+    organizationId: await resolveOrganizationId(
+      result.user.id,
+      result.session.activeOrganizationId,
+    ),
   };
 }
 

@@ -1,4 +1,26 @@
+import { existsSync } from 'node:fs';
+import { dirname, isAbsolute, resolve } from 'node:path';
 import { z } from 'zod';
+
+/**
+ * Find the monorepo root by walking up from `process.cwd()` for the
+ * pnpm workspace marker. Packages are launched with different working
+ * directories (e.g. `pnpm --filter @yougrep/web` runs in apps/web, `--filter
+ * @yougrep/db` in packages/db), so a relative PGLITE_DATA_DIR like
+ * `.data/pglite` would otherwise resolve to a *different*, isolated database
+ * per package — the web app, the seed script, and the worker would never share
+ * state. Anchoring relative paths to the workspace root gives every process one
+ * shared local database. Absolute paths (e.g. a vitest temp dir) pass through.
+ */
+function repoRoot(): string {
+  let dir = process.cwd();
+  for (;;) {
+    if (existsSync(resolve(dir, 'pnpm-workspace.yaml'))) return dir;
+    const parent = dirname(dir);
+    if (parent === dir) return process.cwd(); // no marker found; fall back to cwd
+    dir = parent;
+  }
+}
 
 /**
  * Central environment contract. Everything external is optional because the
@@ -47,7 +69,13 @@ let cached: Env | null = null;
 
 export function getEnv(): Env {
   if (cached) return cached;
-  cached = EnvSchema.parse(process.env);
+  const parsed = EnvSchema.parse(process.env);
+  // Anchor a relative PGlite data dir to the workspace root so every package
+  // process (web, worker, seed, scripts) shares one local database.
+  if (!isAbsolute(parsed.PGLITE_DATA_DIR)) {
+    parsed.PGLITE_DATA_DIR = resolve(repoRoot(), parsed.PGLITE_DATA_DIR);
+  }
+  cached = parsed;
   return cached;
 }
 

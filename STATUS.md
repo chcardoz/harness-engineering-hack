@@ -45,11 +45,14 @@ Legend: ⬜ todo · 🟡 in progress · ✅ done · 🧪 needs test/lint · ⛔ 
 
   - **FIX (server/client boundary):** server routes imported `@yougrep/agents` → `@yougrep/openui` barrel, which re-exports the React **client** component libraries (`useState`) — pulling client components into a server-only API route → 500 on channel create. Added a server-safe `@yougrep/openui/contract` subpath (types + `doc`/`node`/`validateNode` only, zod-only deps) and pointed all server-side agent/route imports at it. Caught live in the agent-browser walkthrough.
 
-## Phase 3 — Worker, infra, polish
+## Phase 3 — Worker, infra, polish ✅
 
-- ⬜ `apps/worker` — finalize interview package, summaries, board refresh (stub queue)
-- ⬜ `render.yaml` blueprint + env docs
-- ⬜ Seed script (org, recruiter, postgres-engineer channel, published posting, candidates w/ interviews)
+- ✅ `apps/worker` (`@yougrep/worker`) — background reconciliation tier as an in-process Postgres poll loop ("stub queue"). `reconcileInterviews({organizationIds})` is the loop-free, testable unit: finds `completed` sessions with no result package and finalizes them (idempotent — gated on `getResultPackageForSession === null`). `runtime.ts` schedules non-overlapping passes w/ graceful SIGINT/SIGTERM; `once.ts` is the one-shot cron entry. Tenant-scoped enumeration. Verified: `start:once` → `orgs=1 examined=3 finalized=0` (all inline-finalized).
+- ✅ `render.yaml` blueprint — `web` (Next.js, healthCheck `/api/health`), `worker`, `cron` (`*/30`), Postgres, Key Value. Secrets `sync:false`; `DATABASE_URL`/`REDIS_URL` wired `fromDatabase`/`fromService`. node-postgres driver swap remains the documented packages/db TODO.
+- ✅ Seed script (`pnpm --filter @yougrep/db seed`) — recruiter `demo@yougrep.dev` / `yougrep-demo-1234`, org **Northwind Data** (`northwind-data`), connectors, "Senior Postgres Engineer" channel **published through the real agent path**, and **3 candidates with a full recommendation spread**: Priya 100 "Strong yes" / Marcus 52 "Maybe" / Sofia 40 "No" — exercises all three scorecard states. Verified end-to-end in agent-browser (login → workspace → populated review sidebar).
+
+  - **FIX (shared local DB):** relative `PGLITE_DATA_DIR` resolved against each package's cwd, so `pnpm --filter` gave web / worker / seed three *isolated* `.data/pglite` databases. `getEnv()` now anchors a relative data dir to the monorepo root (walks up for `pnpm-workspace.yaml`); absolute paths (vitest temp dirs) pass through. One shared DB across all processes.
+  - **FIX (fresh-login org):** `getSessionContext` resolved org only from `session.activeOrganizationId`, so any account without an active org set (seed-provisioned, or a returning user on a recreated session) hit `/onboarding` despite valid membership. Now falls back to the user's oldest membership — still membership-gated.
 
 ## Phase 4 — Quality gates (MAIN LOOP)
 
@@ -67,3 +70,4 @@ Legend: ⬜ todo · 🟡 in progress · ✅ done · 🧪 needs test/lint · ⛔ 
 - `Phase 1b: agents package — job-channel + isolated interview agents (47 tests green)`
 - `Phase 2: web surfaces — auth, workspace, channel agent, board, interview, review`
 - `Fix: server-safe @yougrep/openui/contract subpath (keep client components out of server routes)`
+- `Phase 3: worker (reconcile loop + cron), render.yaml blueprint, demo seed; shared-DB + fresh-login fixes`

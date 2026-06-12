@@ -1,0 +1,138 @@
+# Yougrep — Render Blueprint (infrastructure-as-code)
+#
+# Deploys the whole app as connected Render resources: a Next.js `web` service,
+# a long-running `worker`, a scheduled `cron` job, managed Postgres, and a
+# Redis-compatible Key Value store. See docs/render.md for the rationale.
+#
+# NOTE: The local dev loop uses PGlite (in-process Postgres WASM) so it needs no
+# Docker or keys. On Render the app runs against managed Postgres via
+# `DATABASE_URL`. Swapping packages/db's driver from PGlite to node-postgres for
+# the `DATABASE_URL` path is a documented TODO in packages/db — until then this
+# blueprint is the deploy target of record, not a one-command production launch.
+#
+# Secrets are declared with `sync: false` (set them in the Render dashboard or an
+# environment group) — never commit real values.
+
+databases:
+  - name: yougrep-postgres
+    databaseName: yougrep
+    plan: basic-256mb
+    region: oregon
+
+services:
+  # Redis-compatible Key Value: queues / short-lived coordination / rate-limit state.
+  - type: keyvalue
+    name: yougrep-kv
+    plan: starter
+    region: oregon
+    ipAllowList: [] # only reachable from services in this Render account
+
+  # Recruiter UI + candidate UI + public job board + API/auth routes + realtime bootstrap.
+  - type: web
+    name: yougrep-web
+    runtime: node
+    region: oregon
+    plan: starter
+    branch: main
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @yougrep/web build
+    startCommand: pnpm --filter @yougrep/web start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: INTEGRATIONS_MODE
+        value: live
+      - key: DATABASE_URL
+        fromDatabase:
+          name: yougrep-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: yougrep-kv
+          property: connectionString
+      - key: BETTER_AUTH_SECRET
+        generateValue: true
+      - key: BETTER_AUTH_URL
+        sync: false # https://<your-web-service>.onrender.com
+      # Text path: backend -> Guild -> TrueFoundry -> provider.
+      - key: GUILD_API_KEY
+        sync: false
+      - key: GUILD_WORKSPACE_ID
+        sync: false
+      - key: TRUEFOUNDRY_GATEWAY_BASE_URL
+        sync: false
+      - key: TRUEFOUNDRY_API_KEY
+        sync: false
+      # Voice path: backend mints an ephemeral OpenAI Realtime credential.
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: VOICE_MODEL
+        value: gpt-realtime-2
+      - key: TEXT_MODEL
+        value: gpt-4o
+      # Read-only connectors.
+      - key: AIRBYTE_API_KEY
+        sync: false
+      - key: AIRBYTE_WORKSPACE_ID
+        sync: false
+      - key: AIRBYTE_ORGANIZATION_ID
+        sync: false
+      - key: AIRBYTE_CONNECTOR_IDS_JSON
+        sync: false
+
+  # Background reconciliation tier (continuous poll loop / "stub queue").
+  # Finalizes interview result packages the inline path missed; room to grow into
+  # connector refresh, board refresh, transcript finalization, candidate summaries.
+  - type: worker
+    name: yougrep-worker
+    runtime: node
+    region: oregon
+    plan: starter
+    branch: main
+    buildCommand: corepack enable && pnpm install --frozen-lockfile
+    startCommand: pnpm --filter @yougrep/worker start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: INTEGRATIONS_MODE
+        value: live
+      - key: WORKER_INTERVAL_MS
+        value: "30000"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: yougrep-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: yougrep-kv
+          property: connectionString
+      - key: GUILD_API_KEY
+        sync: false
+      - key: GUILD_WORKSPACE_ID
+        sync: false
+      - key: TRUEFOUNDRY_GATEWAY_BASE_URL
+        sync: false
+      - key: TRUEFOUNDRY_API_KEY
+        sync: false
+
+  # Scheduled one-shot pass (connector refresh / stale cleanup / daily reconcile).
+  - type: cron
+    name: yougrep-cron
+    runtime: node
+    region: oregon
+    plan: starter
+    branch: main
+    schedule: "*/30 * * * *" # every 30 minutes
+    buildCommand: corepack enable && pnpm install --frozen-lockfile
+    startCommand: pnpm --filter @yougrep/worker start:once
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: INTEGRATIONS_MODE
+        value: live
+      - key: DATABASE_URL
+        fromDatabase:
+          name: yougrep-postgres
+          property: connectionString

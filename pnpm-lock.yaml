@@ -94,6 +94,21 @@ importers:
         specifier: ^19.0.2
         version: 19.2.3(@types/react@19.2.17)
 
+  apps/worker:
+    dependencies:
+      '@yougrep/agents':
+        specifier: workspace:*
+        version: link:../../packages/agents
+      '@yougrep/config':
+        specifier: workspace:*
+        version: link:../../packages/config
+      '@yougrep/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@yougrep/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
+
   packages/agents:
     dependencies:
       '@yougrep/config':
@@ -141,9 +156,21 @@ importers:
       '@electric-sql/pglite':
         specifier: ^0.2.17
         version: 0.2.17
+      '@yougrep/agents':
+        specifier: workspace:*
+        version: link:../agents
+      '@yougrep/auth':
+        specifier: workspace:*
+        version: link:../auth
       '@yougrep/config':
         specifier: workspace:*
         version: link:../config
+      '@yougrep/domain':
+        specifier: workspace:*
+        version: link:../domain
+      '@yougrep/openui':
+        specifier: workspace:*
+        version: link:../openui
       drizzle-orm:
         specifier: ^0.38.3
         version: 0.38.4(@electric-sql/pglite@0.2.17)(@types/react@19.2.17)(kysely@0.29.2)(react@19.2.7)
