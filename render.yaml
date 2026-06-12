@@ -19,7 +19,7 @@ services:
     name: yougrep-web
     runtime: node
     region: oregon
-    plan: starter
+    plan: free
     repo: https://github.com/chcardoz/harness-engineering-hack
     branch: straight-to-prod
     buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @yougrep/web build
@@ -69,68 +69,10 @@ services:
         value: json
       - key: LOG_LEVEL
         value: info
-
-  # Background reconciliation tier (continuous poll loop / "stub queue").
-  # Finalizes interview result packages the inline path missed.
-  - type: worker
-    name: yougrep-worker
-    runtime: node
-    region: oregon
-    plan: starter
-    repo: https://github.com/chcardoz/harness-engineering-hack
-    branch: straight-to-prod
-    buildCommand: corepack enable && pnpm install --frozen-lockfile
-    startCommand: pnpm --filter @yougrep/worker start
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: INTEGRATIONS_MODE
-        value: live
-      - key: GUILD_MODE
-        value: stub
-      - key: WORKER_INTERVAL_MS
-        value: "30000"
-      - key: DATABASE_URL
-        sync: false
-      # Interview finalize may narrate via Pioneer.
-      - key: PIONEER_API_KEY
-        sync: false
-      - key: PIONEER_BASE_URL
-        value: https://api.pioneer.ai/v1
-      - key: TEXT_MODEL
-        value: gpt-4.1
-      - key: LOG_FORMAT
-        value: json
-      - key: LOG_LEVEL
-        value: info
-
-  # Scheduled one-shot pass (daily reconcile / stale cleanup).
-  - type: cron
-    name: yougrep-cron
-    runtime: node
-    region: oregon
-    plan: starter
-    repo: https://github.com/chcardoz/harness-engineering-hack
-    branch: straight-to-prod
-    schedule: "*/30 * * * *" # every 30 minutes
-    buildCommand: corepack enable && pnpm install --frozen-lockfile
-    startCommand: pnpm --filter @yougrep/worker start:once
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: INTEGRATIONS_MODE
-        value: live
-      - key: GUILD_MODE
-        value: stub
-      - key: DATABASE_URL
-        sync: false
-      - key: PIONEER_API_KEY
-        sync: false
-      - key: PIONEER_BASE_URL
-        value: https://api.pioneer.ai/v1
-      - key: TEXT_MODEL
-        value: gpt-4.1
-      - key: LOG_FORMAT
-        value: json
-      - key: LOG_LEVEL
-        value: info
+# ── Deferred to a paid plan ──────────────────────────────────────────────────
+# The `worker` (continuous finalize-backstop) and `cron` (scheduled reconcile)
+# tiers have NO free plan on Render, so they're omitted from this free-tier
+# launch. Nothing essential is lost: interview result packages are finalized
+# inline on completion; the worker is only a safety net for missed ones. Add a
+# payment method and re-add `type: worker` / `type: cron` blocks (plan: starter)
+# to restore them. The @yougrep/worker code + start scripts are unchanged.
