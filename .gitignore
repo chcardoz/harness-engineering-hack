@@ -29,3 +29,4 @@ pnpm-debug.log*
 # agent-browser / test artifacts
 .agent-browser/
 screenshots/
+.vercel
