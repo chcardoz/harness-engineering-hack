@@ -1,0 +1,31 @@
+{
+  "name": "@yougrep/db",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema.ts",
+    "./*": "./src/*"
+  },
+  "scripts": {
+    "generate": "drizzle-kit generate",
+    "embed": "tsx src/scripts/embed.ts",
+    "reset": "tsx src/scripts/reset.ts",
+    "seed": "tsx src/scripts/seed.ts"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.2.17",
+    "@yougrep/agents": "workspace:*",
+    "@yougrep/auth": "workspace:*",
+    "@yougrep/config": "workspace:*",
+    "@yougrep/domain": "workspace:*",
+    "@yougrep/openui": "workspace:*",
+    "drizzle-orm": "^0.38.3"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.30.1"
+  }
+}

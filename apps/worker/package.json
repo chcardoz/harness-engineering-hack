@@ -1,0 +1,17 @@
+{
+  "name": "@yougrep/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "start:once": "tsx src/once.ts"
+  },
+  "dependencies": {
+    "@yougrep/agents": "workspace:*",
+    "@yougrep/config": "workspace:*",
+    "@yougrep/db": "workspace:*",
+    "@yougrep/domain": "workspace:*"
+  }
+}

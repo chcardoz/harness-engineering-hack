@@ -1,0 +1,31 @@
+node_modules/
+.next/
+out/
+dist/
+build/
+.turbo/
+coverage/
+
+# Local data
+.data/
+*.pglite
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.tsbuildinfo
+
+# agent-browser / test artifacts
+.agent-browser/
+screenshots/

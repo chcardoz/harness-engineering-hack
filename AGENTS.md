@@ -1,29 +1,39 @@
 # AGENTS.md
 
-> Status: **pre-implementation.** This repo currently holds stack research in `docs/`. No application code exists yet. Build against the blueprint below.
+> Status: **in active buildout.** Implementation underway — see [STATUS.md](./STATUS.md) for the live task list and progress. Build against the blueprint below.
+
+## Buildout Rules (for any agent working in this repo)
+
+- **Never run `agent-browser` inside a subagent.** It launches a real browser + dev server; multiple concurrent sessions will crash the machine. Only the **main agent loop** runs ONE `agent-browser` localhost session, reused throughout.
+- **Stable dev port:** always use `${CONDUCTOR_PORT:-3000}` for the Next.js dev server so the browser session keeps a consistent port. Never let a subagent start the dev server.
+- **Subagents write code only** — they must not be blocked by or block other agents. Git commits, test/lint runs, and error-fixing happen in the **main loop only**. No `git commit` inside a subagent.
+- **Don't test with the same subagent that wrote the code.** Run typecheck/lint/format/tests from the main loop (or a separate testing agent) between or after task batches.
+- **Database = PGlite** (in-process Postgres, `@electric-sql/pglite` + `drizzle-orm/pglite`). No Docker/psql needed locally. Single Next.js process owns the DB; HMR-safe singleton on `globalThis`.
+- **Fonts:** Geist everywhere (`geist/font`). Hero/wordmark uses a pixel display font. **Icons inside the app:** Phosphor (`@phosphor-icons/react`). **Animations:** the `motion` library (`motion/react`), kept smooth.
 
 ## Product
 
 **Yougrep** is a recruiter-agent workspace for companies hiring technical talent. It feels like a Slack workspace where **every channel is one job opening**, and each channel has a long-running agent that knows the role, company context (via connectors), candidates, and interview history.
 
 Two surfaces:
+
 - **Recruiter workspace** — Slack-like dashboard: create job channels, talk to the channel agent, draft listings, publish to the org's own job board, review candidates.
 - **Candidate interview** — from the org's public job board, a one-click entry into a live voice interview (GPT Realtime 2 over WebRTC) with generated UI exercises.
 
 ## Stack
 
-| Role | Choice |
-| --- | --- |
-| Language / app | TypeScript, Next.js (web), Node worker |
-| Auth + tenancy | Better Auth (Organization plugin) |
-| Source of truth | Postgres |
-| Generated UI | OpenUI (Thesys `openui-lang`) |
-| Agent control plane | Guild AI (`guild.ai`) |
-| LLM gateway (text) | TrueFoundry (OpenAI-compatible) |
-| Voice interview | OpenAI Realtime API, `gpt-realtime-2`, WebRTC + backend ephemeral credential |
-| Connectors | Airbyte — **read-only** (Notion/GitHub/Slack context; optional Greenhouse/Ashby import) |
-| Hosting | Render (Blueprint `render.yaml`: `web`, `worker`, `cron`, Postgres, Key Value) |
-| Analytics (optional) | ClickHouse (traces/events only; not app state) |
+| Role                 | Choice                                                                                  |
+| -------------------- | --------------------------------------------------------------------------------------- |
+| Language / app       | TypeScript, Next.js (web), Node worker                                                  |
+| Auth + tenancy       | Better Auth (Organization plugin)                                                       |
+| Source of truth      | Postgres                                                                                |
+| Generated UI         | OpenUI (Thesys `openui-lang`)                                                           |
+| Agent control plane  | Guild AI (`guild.ai`)                                                                   |
+| LLM gateway (text)   | TrueFoundry (OpenAI-compatible)                                                         |
+| Voice interview      | OpenAI Realtime API, `gpt-realtime-2`, WebRTC + backend ephemeral credential            |
+| Connectors           | Airbyte — **read-only** (Notion/GitHub/Slack context; optional Greenhouse/Ashby import) |
+| Hosting              | Render (Blueprint `render.yaml`: `web`, `worker`, `cron`, Postgres, Key Value)          |
+| Analytics (optional) | ClickHouse (traces/events only; not app state)                                          |
 
 ## Key Architecture Decisions (don't violate)
 
