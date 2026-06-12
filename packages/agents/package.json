@@ -14,6 +14,7 @@
     "@yougrep/db": "workspace:*",
     "@yougrep/domain": "workspace:*",
     "@yougrep/integrations": "workspace:*",
+    "@yougrep/logger": "workspace:*",
     "@yougrep/openui": "workspace:*",
     "zod": "^3.24.1"
   }

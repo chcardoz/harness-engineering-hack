@@ -13,7 +13,10 @@
  */
 import { getEnv } from '@yougrep/config';
 import { ensureMigrated } from '@yougrep/db';
+import { createLogger } from '@yougrep/logger';
 import { startWorkerLoop } from './runtime';
+
+const log = createLogger('worker');
 
 const DEFAULT_INTERVAL_MS = 15_000;
 
@@ -31,16 +34,17 @@ async function main(): Promise<void> {
 
   const intervalMs = resolveIntervalMs();
 
-  console.log(
-    `[worker] @yougrep/worker started · env=${env.NODE_ENV} · ` +
-      `integrations=${env.INTEGRATIONS_MODE} · interval=${intervalMs}ms · ` +
-      `jobs=[reconcile-interviews]`,
-  );
+  log.info('worker started', {
+    env: env.NODE_ENV,
+    integrations: env.INTEGRATIONS_MODE,
+    intervalMs,
+    jobs: ['reconcile-interviews'],
+  });
 
   const loop = startWorkerLoop({ intervalMs });
 
   const shutdown = (signal: string) => {
-    console.log(`[worker] received ${signal}, draining current pass and shutting down…`);
+    log.info('shutdown signal received, draining current pass', { signal });
     loop.stop();
   };
 
@@ -48,11 +52,11 @@ async function main(): Promise<void> {
   process.on('SIGTERM', () => shutdown('SIGTERM'));
 
   await loop.done;
-  console.log('[worker] stopped cleanly. Goodbye.');
+  log.info('worker stopped cleanly');
   process.exit(0);
 }
 
 main().catch((err) => {
-  console.error('[worker] fatal error', err);
+  log.error('fatal error', { err });
   process.exit(1);
 });

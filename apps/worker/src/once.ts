@@ -9,21 +9,26 @@
  */
 import { getEnv } from '@yougrep/config';
 import { ensureMigrated } from '@yougrep/db';
+import { createLogger } from '@yougrep/logger';
 import { runOnce } from './runtime';
+
+const log = createLogger('worker:cron');
 
 async function main(): Promise<void> {
   const env = getEnv();
   await ensureMigrated();
 
   const summary = await runOnce();
-  console.log(
-    `[worker:cron] single pass complete · env=${env.NODE_ENV} · ` +
-      `orgs=${summary.orgs} · examined=${summary.examined} · finalized=${summary.finalized}`,
-  );
+  log.info('single pass complete', {
+    env: env.NODE_ENV,
+    orgs: summary.orgs,
+    examined: summary.examined,
+    finalized: summary.finalized,
+  });
   process.exit(0);
 }
 
 main().catch((err) => {
-  console.error('[worker:cron] fatal error', err);
+  log.error('fatal error', { err });
   process.exit(1);
 });

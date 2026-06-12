@@ -1,39 +1,26 @@
 # Yougrep — Render Blueprint (infrastructure-as-code)
 #
-# Deploys the whole app as connected Render resources: a Next.js `web` service,
-# a long-running `worker`, a scheduled `cron` job, managed Postgres, and a
-# Redis-compatible Key Value store. See docs/render.md for the rationale.
+# Deploys the app as connected Render resources: a Next.js `web` service, a
+# long-running `worker`, and a scheduled `cron` job. See docs/render.md.
 #
-# NOTE: The local dev loop uses PGlite (in-process Postgres WASM) so it needs no
-# Docker or keys. On Render the app runs against managed Postgres via
-# `DATABASE_URL`. Swapping packages/db's driver from PGlite to node-postgres for
-# the `DATABASE_URL` path is a documented TODO in packages/db — until then this
-# blueprint is the deploy target of record, not a one-command production launch.
+# Data plane lives OUTSIDE Render:
+#   - Source of truth: managed Postgres (ClickHouse Cloud's bundled PG), reached
+#     via DATABASE_URL. We do NOT provision a Render database.
+#   - Analytics / CDC target: ClickHouse Cloud, reached via CLICKHOUSE_URL.
+# packages/db speaks node-postgres when DATABASE_URL is set (PGlite only locally).
 #
-# Secrets are declared with `sync: false` (set them in the Render dashboard or an
-# environment group) — never commit real values.
-
-databases:
-  - name: yougrep-postgres
-    databaseName: yougrep
-    plan: basic-256mb
-    region: oregon
+# Secrets are `sync: false` — Render prompts for them at blueprint launch; never
+# commit real values. The matching local values live in the root .env (gitignored).
 
 services:
-  # Redis-compatible Key Value: queues / short-lived coordination / rate-limit state.
-  - type: keyvalue
-    name: yougrep-kv
-    plan: starter
-    region: oregon
-    ipAllowList: [] # only reachable from services in this Render account
-
-  # Recruiter UI + candidate UI + public job board + API/auth routes + realtime bootstrap.
+  # Recruiter UI + candidate UI + public job board + API/auth + realtime bootstrap
+  # + the channel agent (Pioneer tool-loop, Composio connectors, ClickHouse SQL).
   - type: web
     name: yougrep-web
     runtime: node
     region: oregon
     plan: starter
-    branch: main
+    branch: straight-to-prod
     buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @yougrep/web build
     startCommand: pnpm --filter @yougrep/web start
     healthCheckPath: /api/health
@@ -42,54 +29,54 @@ services:
         value: production
       - key: INTEGRATIONS_MODE
         value: live
+      # Guild is a no-op tracing shim today (no key needed); keep it stubbed.
+      - key: GUILD_MODE
+        value: stub
+      # Source of truth — external managed Postgres (ClickHouse Cloud PG).
       - key: DATABASE_URL
-        fromDatabase:
-          name: yougrep-postgres
-          property: connectionString
-      - key: REDIS_URL
-        fromService:
-          type: keyvalue
-          name: yougrep-kv
-          property: connectionString
+        sync: false
       - key: BETTER_AUTH_SECRET
         generateValue: true
       - key: BETTER_AUTH_URL
         sync: false # https://<your-web-service>.onrender.com
-      # Text path: backend -> Guild -> TrueFoundry -> provider.
-      - key: GUILD_API_KEY
+      # Text path: backend -> Guild -> Pioneer -> provider.
+      - key: PIONEER_API_KEY
         sync: false
-      - key: GUILD_WORKSPACE_ID
-        sync: false
-      - key: TRUEFOUNDRY_GATEWAY_BASE_URL
-        sync: false
-      - key: TRUEFOUNDRY_API_KEY
-        sync: false
+      - key: PIONEER_BASE_URL
+        value: https://api.pioneer.ai/v1
+      - key: TEXT_MODEL
+        value: gpt-4.1
       # Voice path: backend mints an ephemeral OpenAI Realtime credential.
       - key: OPENAI_API_KEY
         sync: false
       - key: VOICE_MODEL
         value: gpt-realtime-2
-      - key: TEXT_MODEL
-        value: gpt-4o
-      # Read-only connectors.
-      - key: AIRBYTE_API_KEY
+      # Connectors: per-end-user OAuth via Composio (GitHub/Notion/Linear).
+      - key: COMPOSIO_API_KEY
         sync: false
-      - key: AIRBYTE_WORKSPACE_ID
+      - key: COMPOSIO_AUTH_CONFIGS_JSON
+        sync: false # {"github":"ac_...","notion":"ac_...","linear":"ac_..."}
+      # Analytics / CDC: ClickHouse Cloud (agent SQL tool + OpenUI analytics).
+      - key: CLICKHOUSE_URL
         sync: false
-      - key: AIRBYTE_ORGANIZATION_ID
+      - key: CLICKHOUSE_USER
         sync: false
-      - key: AIRBYTE_CONNECTOR_IDS_JSON
+      - key: CLICKHOUSE_PASSWORD
         sync: false
+      # Structured logs (see @yougrep/logger). JSON on Render for greppability.
+      - key: LOG_FORMAT
+        value: json
+      - key: LOG_LEVEL
+        value: info
 
   # Background reconciliation tier (continuous poll loop / "stub queue").
-  # Finalizes interview result packages the inline path missed; room to grow into
-  # connector refresh, board refresh, transcript finalization, candidate summaries.
+  # Finalizes interview result packages the inline path missed.
   - type: worker
     name: yougrep-worker
     runtime: node
     region: oregon
     plan: starter
-    branch: main
+    branch: straight-to-prod
     buildCommand: corepack enable && pnpm install --frozen-lockfile
     startCommand: pnpm --filter @yougrep/worker start
     envVars:
@@ -97,33 +84,31 @@ services:
         value: production
       - key: INTEGRATIONS_MODE
         value: live
+      - key: GUILD_MODE
+        value: stub
       - key: WORKER_INTERVAL_MS
         value: "30000"
       - key: DATABASE_URL
-        fromDatabase:
-          name: yougrep-postgres
-          property: connectionString
-      - key: REDIS_URL
-        fromService:
-          type: keyvalue
-          name: yougrep-kv
-          property: connectionString
-      - key: GUILD_API_KEY
         sync: false
-      - key: GUILD_WORKSPACE_ID
+      # Interview finalize may narrate via Pioneer.
+      - key: PIONEER_API_KEY
         sync: false
-      - key: TRUEFOUNDRY_GATEWAY_BASE_URL
-        sync: false
-      - key: TRUEFOUNDRY_API_KEY
-        sync: false
+      - key: PIONEER_BASE_URL
+        value: https://api.pioneer.ai/v1
+      - key: TEXT_MODEL
+        value: gpt-4.1
+      - key: LOG_FORMAT
+        value: json
+      - key: LOG_LEVEL
+        value: info
 
-  # Scheduled one-shot pass (connector refresh / stale cleanup / daily reconcile).
+  # Scheduled one-shot pass (daily reconcile / stale cleanup).
   - type: cron
     name: yougrep-cron
     runtime: node
     region: oregon
     plan: starter
-    branch: main
+    branch: straight-to-prod
     schedule: "*/30 * * * *" # every 30 minutes
     buildCommand: corepack enable && pnpm install --frozen-lockfile
     startCommand: pnpm --filter @yougrep/worker start:once
@@ -132,7 +117,17 @@ services:
         value: production
       - key: INTEGRATIONS_MODE
         value: live
+      - key: GUILD_MODE
+        value: stub
       - key: DATABASE_URL
-        fromDatabase:
-          name: yougrep-postgres
-          property: connectionString
+        sync: false
+      - key: PIONEER_API_KEY
+        sync: false
+      - key: PIONEER_BASE_URL
+        value: https://api.pioneer.ai/v1
+      - key: TEXT_MODEL
+        value: gpt-4.1
+      - key: LOG_FORMAT
+        value: json
+      - key: LOG_LEVEL
+        value: info

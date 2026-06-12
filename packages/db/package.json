@@ -22,10 +22,13 @@
     "@yougrep/auth": "workspace:*",
     "@yougrep/config": "workspace:*",
     "@yougrep/domain": "workspace:*",
+    "@yougrep/logger": "workspace:*",
     "@yougrep/openui": "workspace:*",
-    "drizzle-orm": "^0.38.3"
+    "drizzle-orm": "^0.38.3",
+    "pg": "^8.13.1"
   },
   "devDependencies": {
+    "@types/pg": "^8.11.10",
     "drizzle-kit": "^0.30.1"
   }
 }

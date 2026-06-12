@@ -34,3 +34,6 @@ export { scoreAnswer, type AnswerScore } from './scoring';
 
 // Prompts (personas)
 export { JOB_CHANNEL_SYSTEM_PROMPT, INTERVIEW_SYSTEM_PROMPT } from './prompts';
+
+// Agent tool-calling loop (Composio + ClickHouse SQL tools plug in here)
+export { runToolLoop, type AgentTool, type ToolLoopResult } from './tool-loop';

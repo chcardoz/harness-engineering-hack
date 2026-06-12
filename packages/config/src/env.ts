@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs';
 import { dirname, isAbsolute, resolve } from 'node:path';
+import { config as loadDotenv } from 'dotenv';
 import { z } from 'zod';
 
 /**
@@ -36,7 +37,9 @@ const EnvSchema = z.object({
   INTEGRATIONS_MODE: IntegrationMode.default('stub'),
   GUILD_MODE: IntegrationMode.optional(),
   TRUEFOUNDRY_MODE: IntegrationMode.optional(),
+  PIONEER_MODE: IntegrationMode.optional(),
   AIRBYTE_MODE: IntegrationMode.optional(),
+  COMPOSIO_MODE: IntegrationMode.optional(),
   OPENAI_REALTIME_MODE: IntegrationMode.optional(),
 
   // Database — PGlite file dir locally; a real postgres URL on Render.
@@ -50,13 +53,27 @@ const EnvSchema = z.object({
   // External services (only needed in live mode)
   GUILD_API_KEY: z.string().optional(),
   GUILD_WORKSPACE_ID: z.string().optional(),
+  // TrueFoundry — legacy LLM gateway, being replaced by Pioneer.
   TRUEFOUNDRY_GATEWAY_BASE_URL: z.string().optional(),
   TRUEFOUNDRY_API_KEY: z.string().optional(),
+  // Pioneer — LLM gateway (OpenAI-compatible, X-API-Key auth).
+  PIONEER_API_KEY: z.string().optional(),
+  PIONEER_BASE_URL: z.string().default('https://api.pioneer.ai/v1'),
   OPENAI_API_KEY: z.string().optional(),
+  // Airbyte — legacy read-only connectors, being replaced by Composio.
   AIRBYTE_API_KEY: z.string().optional(),
   AIRBYTE_WORKSPACE_ID: z.string().optional(),
   AIRBYTE_ORGANIZATION_ID: z.string().optional(),
   AIRBYTE_CONNECTOR_IDS_JSON: z.string().optional(),
+  // Composio — per-end-user connected accounts (GitHub/Notion/Linear).
+  COMPOSIO_API_KEY: z.string().optional(),
+  // JSON map of toolkit slug → Composio auth-config id, e.g.
+  // {"github":"ac_...","notion":"ac_...","linear":"ac_..."} (from the dashboard).
+  COMPOSIO_AUTH_CONFIGS_JSON: z.string().optional(),
+  // ClickHouse — analytics / CDC target queried by the channel agent.
+  CLICKHOUSE_URL: z.string().optional(),
+  CLICKHOUSE_USER: z.string().optional(),
+  CLICKHOUSE_PASSWORD: z.string().optional(),
 
   // Models
   TEXT_MODEL: z.string().default('gpt-4o'),
@@ -66,9 +83,26 @@ const EnvSchema = z.object({
 export type Env = z.infer<typeof EnvSchema>;
 
 let cached: Env | null = null;
+let dotenvLoaded = false;
+
+/**
+ * Load the single root `.env` once, so every process — web, worker, and the
+ * tsx-run scripts — reads the same pasted keys. `dotenv` does NOT override
+ * variables already present in `process.env`, so real environment values
+ * (Render dashboard, CI, an explicit `KEY=… pnpm …`) always win over the file.
+ */
+function ensureDotenv(): void {
+  if (dotenvLoaded) return;
+  dotenvLoaded = true;
+  // Tests are hermetic: they set modes explicitly (vitest `test.env`) and must
+  // not inherit the developer's real `.env` (which flips services to `live`).
+  if (process.env['NODE_ENV'] === 'test') return;
+  loadDotenv({ path: resolve(repoRoot(), '.env') });
+}
 
 export function getEnv(): Env {
   if (cached) return cached;
+  ensureDotenv();
   const parsed = EnvSchema.parse(process.env);
   // Anchor a relative PGlite data dir to the workspace root so every package
   // process (web, worker, seed, scripts) shares one local database.
@@ -83,7 +117,13 @@ export type IntegrationModeValue = z.infer<typeof IntegrationMode>;
 
 /** Resolve the effective mode for a single service, honoring per-service overrides. */
 export function modeFor(
-  service: 'guild' | 'truefoundry' | 'airbyte' | 'openaiRealtime',
+  service:
+    | 'guild'
+    | 'truefoundry'
+    | 'pioneer'
+    | 'airbyte'
+    | 'composio'
+    | 'openaiRealtime',
   env: Env = getEnv(),
 ): IntegrationModeValue {
   switch (service) {
@@ -91,8 +131,12 @@ export function modeFor(
       return env.GUILD_MODE ?? env.INTEGRATIONS_MODE;
     case 'truefoundry':
       return env.TRUEFOUNDRY_MODE ?? env.INTEGRATIONS_MODE;
+    case 'pioneer':
+      return env.PIONEER_MODE ?? env.INTEGRATIONS_MODE;
     case 'airbyte':
       return env.AIRBYTE_MODE ?? env.INTEGRATIONS_MODE;
+    case 'composio':
+      return env.COMPOSIO_MODE ?? env.INTEGRATIONS_MODE;
     case 'openaiRealtime':
       return env.OPENAI_REALTIME_MODE ?? env.INTEGRATIONS_MODE;
   }

@@ -1,9 +1,17 @@
+import { modeFor } from '@yougrep/config';
 import { listConnectors } from '@yougrep/domain';
-import { getAirbyteClient, type ConnectorContextItem } from '@yougrep/integrations';
+import {
+  composioUserId,
+  getComposioClient,
+  TIER1_TOOLKITS,
+  type ComposioToolkit,
+  type ConnectorContextItem,
+} from '@yougrep/integrations';
+import { runToolLoop, type AgentTool } from './tool-loop';
 
 /**
  * Read-only connector context for the channel agent. Reads the org's connected
- * providers and pulls distilled context items from each via Airbyte. This is
+ * providers and pulls distilled context items from each via Composio. This is
  * the recruiter-side context; it is NEVER passed verbatim to the interview
  * agent — only a distilled brief crosses that boundary.
  */
@@ -19,11 +27,55 @@ export async function gatherConnectorContext(
 ): Promise<ConnectorContext> {
   const connectors = await listConnectors(organizationId);
   const connected = connectors.filter((c) => c.status === 'connected' || c.status === 'syncing');
-  const airbyte = getAirbyteClient();
+  const composio = getComposioClient();
+
+  // Live mode: drive the org's real connected accounts via the agent tool-loop
+  // so the brief is grounded in actual GitHub/Notion/Linear content. This is the
+  // recruiter-side context only — the interview agent never receives these tools
+  // or their output, just the distilled brief downstream.
+  const liveToolkits = connected
+    .map((c) => c.provider)
+    .filter((p): p is ComposioToolkit => (TIER1_TOOLKITS as string[]).includes(p));
+  if (modeFor('composio') === 'live' && liveToolkits.length > 0) {
+    try {
+      const handles = await composio.getAgentTools({
+        userId: composioUserId(organizationId),
+        toolkits: liveToolkits,
+      });
+      const tools: AgentTool[] = handles.map((h) => ({ def: h.def, execute: h.execute }));
+      const loop = await runToolLoop({
+        systemPrompt:
+          'You are a hiring research assistant. Use the connected tools to gather concrete, ' +
+          'sourced facts about a role and the team hiring for it. Be terse and factual.',
+        userPrompt:
+          `Gather context for the role "${query ?? 'this opening'}". Look across the connected ` +
+          'sources (repos, docs, issues) for the responsibilities, required skills, tech stack, ' +
+          'and team scope. Summarize as 3–6 short factual bullet points.',
+        tools,
+        fallback: '',
+        maxIterations: 6,
+      });
+      if (loop.text.trim()) {
+        return {
+          items: [
+            {
+              title: query ?? 'Role context',
+              snippet: loop.text.trim(),
+              source: liveToolkits.join('+'),
+            },
+          ],
+          connectedProviders: connected.map((c) => c.provider),
+        };
+      }
+    } catch {
+      // Fall through to readContext (empty in live mode) so a turn never fails
+      // just because a connector call did.
+    }
+  }
 
   const results = await Promise.all(
     connected.map((c) =>
-      airbyte
+      composio
         .readContext({ provider: c.provider, organizationId, query })
         .then((r) => r.items)
         .catch(() => [] as ConnectorContextItem[]),

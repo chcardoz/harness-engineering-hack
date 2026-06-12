@@ -10,7 +10,10 @@
     "./*": "./src/*"
   },
   "dependencies": {
+    "@composio/core": "^0.10.0",
+    "@composio/openai": "^0.9.2",
     "@yougrep/config": "workspace:*",
+    "@yougrep/logger": "workspace:*",
     "zod": "^3.24.1"
   }
 }

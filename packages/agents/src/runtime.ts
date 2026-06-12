@@ -1,17 +1,20 @@
 import { getDb, agentRuns } from '@yougrep/db';
 import { getEnv } from '@yougrep/config';
+import { createLogger } from '@yougrep/logger';
 import {
   getGuildClient,
-  getTrueFoundryClient,
+  getPioneerClient,
   type ChatMessage,
   type GuildRunMeta,
 } from '@yougrep/integrations';
+
+const log = createLogger('agents:runtime');
 
 /**
  * Shared agent runtime: wrap a unit of agent work in the Guild control-plane
  * (tracing/governance) and persist an `agent_runs` row. This is the single
  * place either agent records a trace, so the model path stays consistent:
- *   backend → Guild → TrueFoundry → provider.
+ *   backend → Guild → Pioneer → provider.
  */
 
 export interface AgentRunHandle<T> {
@@ -30,11 +33,23 @@ export async function withAgentRun<T>(
   const guild = getGuildClient();
 
   let toolCalls: string[] = [];
-  const run = await guild.run(meta, async () => {
-    const out = await exec();
-    toolCalls = out.toolCalls ?? [];
-    return out.result;
+  const runLog = log.child(meta.agentType, {
+    organizationId: meta.organizationId,
+    jobChannelId: meta.jobChannelId,
   });
+  runLog.info('agent run start');
+  let run;
+  try {
+    run = await guild.run(meta, async () => {
+      const out = await exec();
+      toolCalls = out.toolCalls ?? [];
+      return out.result;
+    });
+  } catch (err) {
+    runLog.error('agent run failed', { err });
+    throw err;
+  }
+  runLog.info('agent run done', { latencyMs: Math.round(run.latencyMs), toolCalls: toolCalls.length });
 
   const db = getDb();
   const [row] = await db
@@ -45,7 +60,7 @@ export async function withAgentRun<T>(
       jobChannelId: meta.jobChannelId ?? null,
       guildRunId: run.guildRunId,
       traceId: run.traceId,
-      modelProvider: 'truefoundry',
+      modelProvider: 'pioneer',
       modelName: meta.modelName ?? env.TEXT_MODEL,
       status: 'completed',
       latencyMs: Math.round(run.latencyMs),
@@ -66,18 +81,18 @@ export async function withAgentRun<T>(
 }
 
 /**
- * Produce conversational prose through the TrueFoundry gateway. In live mode
- * this is a real model completion; in stub mode the gateway echoes, so we
- * detect that and fall back to the supplied deterministic template. This keeps
- * the demo deterministic while genuinely exercising the model path when keys
- * are present.
+ * Produce conversational prose through the Pioneer gateway. In live mode this
+ * is a real model completion; in stub mode the gateway echoes, so we detect
+ * that and fall back to the supplied deterministic template. This keeps the
+ * demo deterministic while genuinely exercising the model path when keys are
+ * present.
  */
 export async function narrate(input: {
   systemPrompt: string;
   userPrompt: string;
   fallback: string;
 }): Promise<string> {
-  const client = getTrueFoundryClient();
+  const client = getPioneerClient();
   const messages: ChatMessage[] = [
     { role: 'system', content: input.systemPrompt },
     { role: 'user', content: input.userPrompt },
@@ -91,7 +106,8 @@ export async function narrate(input: {
       return input.fallback;
     }
     return text;
-  } catch {
+  } catch (err) {
+    log.warn('narrate fell back to template', { err });
     return input.fallback;
   }
 }
