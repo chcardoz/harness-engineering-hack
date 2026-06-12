@@ -20,6 +20,7 @@ services:
     runtime: node
     region: oregon
     plan: starter
+    repo: https://github.com/chcardoz/harness-engineering-hack
     branch: straight-to-prod
     buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @yougrep/web build
     startCommand: pnpm --filter @yougrep/web start
@@ -76,6 +77,7 @@ services:
     runtime: node
     region: oregon
     plan: starter
+    repo: https://github.com/chcardoz/harness-engineering-hack
     branch: straight-to-prod
     buildCommand: corepack enable && pnpm install --frozen-lockfile
     startCommand: pnpm --filter @yougrep/worker start
@@ -108,6 +110,7 @@ services:
     runtime: node
     region: oregon
     plan: starter
+    repo: https://github.com/chcardoz/harness-engineering-hack
     branch: straight-to-prod
     schedule: "*/30 * * * *" # every 30 minutes
     buildCommand: corepack enable && pnpm install --frozen-lockfile
