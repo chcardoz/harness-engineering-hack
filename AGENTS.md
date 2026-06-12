@@ -1,6 +1,15 @@
 # AGENTS.md
 
-> Status: **pre-implementation.** This repo currently holds stack research in `docs/`. No application code exists yet. Build against the blueprint below.
+> Status: **in active buildout.** Implementation underway — see [STATUS.md](./STATUS.md) for the live task list and progress. Build against the blueprint below.
+
+## Buildout Rules (for any agent working in this repo)
+
+- **Never run `agent-browser` inside a subagent.** It launches a real browser + dev server; multiple concurrent sessions will crash the machine. Only the **main agent loop** runs ONE `agent-browser` localhost session, reused throughout.
+- **Stable dev port:** always use `${CONDUCTOR_PORT:-3000}` for the Next.js dev server so the browser session keeps a consistent port. Never let a subagent start the dev server.
+- **Subagents write code only** — they must not be blocked by or block other agents. Git commits, test/lint runs, and error-fixing happen in the **main loop only**. No `git commit` inside a subagent.
+- **Don't test with the same subagent that wrote the code.** Run typecheck/lint/format/tests from the main loop (or a separate testing agent) between or after task batches.
+- **Database = PGlite** (in-process Postgres, `@electric-sql/pglite` + `drizzle-orm/pglite`). No Docker/psql needed locally. Single Next.js process owns the DB; HMR-safe singleton on `globalThis`.
+- **Fonts:** Geist everywhere (`geist/font`). Hero/wordmark uses a pixel display font. **Icons inside the app:** Phosphor (`@phosphor-icons/react`). **Animations:** the `motion` library (`motion/react`), kept smooth.
 
 ## Product
 

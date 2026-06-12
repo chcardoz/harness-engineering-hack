@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "moduleDetection": "force",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": false,
+    "skipLibCheck": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "forceConsistentCasingInFileNames": true,
+    "declaration": false,
+    "noEmit": true,
+    "jsx": "preserve",
+    "paths": {
+      "@yougrep/config": ["./packages/config/src/index.ts"],
+      "@yougrep/config/*": ["./packages/config/src/*"],
+      "@yougrep/db": ["./packages/db/src/index.ts"],
+      "@yougrep/db/*": ["./packages/db/src/*"],
+      "@yougrep/auth": ["./packages/auth/src/index.ts"],
+      "@yougrep/auth/*": ["./packages/auth/src/*"],
+      "@yougrep/domain": ["./packages/domain/src/index.ts"],
+      "@yougrep/domain/*": ["./packages/domain/src/*"],
+      "@yougrep/integrations": ["./packages/integrations/src/index.ts"],
+      "@yougrep/integrations/*": ["./packages/integrations/src/*"],
+      "@yougrep/openui": ["./packages/openui/src/index.ts"],
+      "@yougrep/openui/*": ["./packages/openui/src/*"],
+      "@yougrep/agents": ["./packages/agents/src/index.ts"],
+      "@yougrep/agents/*": ["./packages/agents/src/*"]
+    }
+  }
+}
