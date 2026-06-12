@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Hash, Plus, SignOut, ArrowUpRight } from '@phosphor-icons/react';
 import { signOut } from '@yougrep/auth/client';
+import { ConnectorsPanel } from './ConnectorsPanel';
 import styles from './workspace.module.css';
 
 export interface SidebarChannel {
@@ -86,6 +87,8 @@ export function Sidebar({
           {orgName}
         </span>
       </div>
+
+      <ConnectorsPanel />
 
       <div className={styles.sectionLabel}>
         <span>Job channels</span>

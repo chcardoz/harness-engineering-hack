@@ -18,6 +18,7 @@
     "@yougrep/db": "workspace:*",
     "@yougrep/domain": "workspace:*",
     "@yougrep/integrations": "workspace:*",
+    "@yougrep/logger": "workspace:*",
     "@yougrep/openui": "workspace:*",
     "better-auth": "^1.2.8",
     "geist": "^1.3.1",

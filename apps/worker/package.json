@@ -12,6 +12,7 @@
     "@yougrep/agents": "workspace:*",
     "@yougrep/config": "workspace:*",
     "@yougrep/db": "workspace:*",
-    "@yougrep/domain": "workspace:*"
+    "@yougrep/domain": "workspace:*",
+    "@yougrep/logger": "workspace:*"
   }
 }

@@ -1,4 +1,7 @@
 import { NextResponse } from 'next/server';
+import { createLogger } from '@yougrep/logger';
+
+const log = createLogger('web:api');
 
 /** Narrow shape for errors that carry an HTTP status (e.g. Unauthorized/Forbidden). */
 function statusOf(err: unknown): number {
@@ -16,6 +19,8 @@ export function json<T>(data: T, init?: number | ResponseInit): NextResponse {
 export function errorResponse(err: unknown): NextResponse {
   const status = statusOf(err);
   const message = err instanceof Error ? err.message : 'Unexpected error';
-  if (status >= 500) console.error('[api] error:', err);
+  // 5xx are our bugs — log with the stack; 4xx are expected client errors.
+  if (status >= 500) log.error('request failed', { status, err });
+  else log.warn('request rejected', { status, message });
   return NextResponse.json({ error: message }, { status });
 }

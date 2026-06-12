@@ -1,4 +1,7 @@
 import { getEnv, modeFor } from '@yougrep/config';
+import { createLogger } from '@yougrep/logger';
+
+const log = createLogger('integrations:realtime');
 
 export interface EphemeralSession {
   clientSecret: string;
@@ -50,6 +53,13 @@ function makeRealClient(): RealtimeClient {
 
       if (!response.ok) {
         const text = await response.text().catch(() => '(no body)');
+        log.error('ephemeral session creation failed', {
+          sessionId,
+          model,
+          status: response.status,
+          statusText: response.statusText,
+          body: text.slice(0, 500),
+        });
         throw new Error(
           `OpenAI Realtime session creation failed: ${response.status} ${response.statusText} — ${text}`,
         );
@@ -63,9 +73,11 @@ function makeRealClient(): RealtimeClient {
 
       const clientSecret = data.client_secret?.value;
       if (!clientSecret) {
+        log.error('ephemeral session missing client_secret', { sessionId, model });
         throw new Error('OpenAI Realtime: response did not include a client_secret.value');
       }
 
+      log.info('ephemeral session minted', { sessionId: data.id ?? sessionId, model });
       return {
         clientSecret,
         expiresAt: data.client_secret?.expires_at ?? '',

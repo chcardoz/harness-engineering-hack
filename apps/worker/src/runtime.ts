@@ -6,8 +6,11 @@
  * down cleanly on SIGINT/SIGTERM. Kept separate from the jobs so the jobs stay
  * loop-free and unit-testable.
  */
+import { createLogger } from '@yougrep/logger';
 import { reconcileInterviews } from './jobs/reconcile-interviews';
 import { listAllOrganizationIds } from './orgs';
+
+const log = createLogger('worker:reconcile');
 
 export interface WorkerLoopOptions {
   /** Interval between passes, in milliseconds. */
@@ -38,18 +41,12 @@ export async function runOnce(): Promise<{ orgs: number; finalized: number; exam
 }
 
 function heartbeat(pass: number, summary: Awaited<ReturnType<typeof runOnce>>): void {
-  console.log(
-    JSON.stringify({
-      level: 'info',
-      worker: 'reconcile',
-      event: 'heartbeat',
-      pass,
-      orgs: summary.orgs,
-      sessionsExamined: summary.examined,
-      sessionsReconciled: summary.finalized,
-      at: new Date().toISOString(),
-    }),
-  );
+  log.info('heartbeat', {
+    pass,
+    orgs: summary.orgs,
+    sessionsExamined: summary.examined,
+    sessionsReconciled: summary.finalized,
+  });
 }
 
 /**
@@ -73,16 +70,7 @@ export function startWorkerLoop(options: WorkerLoopOptions): WorkerLoopHandle {
       const summary = await runOnce();
       heartbeat(pass, summary);
     } catch (err) {
-      console.error(
-        JSON.stringify({
-          level: 'error',
-          worker: 'reconcile',
-          event: 'pass_failed',
-          pass,
-          at: new Date().toISOString(),
-        }),
-        err,
-      );
+      log.error('pass failed', { pass, err });
     }
 
     if (stopped) {
