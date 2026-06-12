@@ -48,10 +48,15 @@ Agents should run gates 1–3 on every change and treat them as the definition o
 
 ## UI Work — How To Test
 
+Two installed skills (in `.claude/skills/`) drive this loop:
+- **`agent-browser`** — browser automation against `localhost`: navigate, fill forms, click, screenshot, QA. Prefer it over any built-in browser/web tooling.
+- **`web-design-guidelines`** — audit changed UI code for accessibility / performance / UX before calling frontend work done.
+
 1. Run the Next.js `dev` server.
-2. Use **browser-driving tooling** (the agent's browser) to open `localhost`, exercise the recruiter workspace, the public job board (`/c/{org-slug}` and `/c/{org-slug}/{job-slug}`), and the candidate interview surface, and screenshot to verify rendering.
+2. Use **`agent-browser`** to open `localhost`, exercise the recruiter workspace, the public job board (`/c/{org-slug}` and `/c/{org-slug}/{job-slug}`), and the candidate interview surface, and screenshot to verify rendering.
 3. **OpenUI**: render against fixture `openui-lang` payloads so component rendering is testable without an LLM in the loop. Keep a fixtures folder of representative payloads per component (`JobListingDraft`, `CandidateComparisonTable`, `QuestionCard`, …) including a deliberately malformed one to exercise the fallback path.
-4. The candidate voice interview needs a real ephemeral OpenAI Realtime credential and WebRTC, so it is the one surface that does not fully stub — develop the **text interview path first** (it is the default build order anyway) and treat voice as a `live`-mode smoke check.
+4. Run **`web-design-guidelines`** on the changed UI before considering it done.
+5. The candidate voice interview needs a real ephemeral OpenAI Realtime credential and WebRTC, so it is the one surface that does not fully stub — develop the **text interview path first** (it is the default build order anyway) and treat voice as a `live`-mode smoke check.
 
 ## Seeding
 

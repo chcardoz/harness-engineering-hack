@@ -48,6 +48,15 @@ Closed loop: change code, run it fully locally with external services stubbed, o
 - Backend: typecheck + lint → unit tests → integration tests against local Postgres, all with `INTEGRATIONS_MODE=stub` (no keys needed).
 - UI: Next.js dev server + browser-driving tooling against `localhost`; render OpenUI from fixture payloads.
 
+### Skills for the dev loop
+
+Two installed skills (in `.claude/skills/`) are the preferred tools for the UI side of the loop:
+
+- **`agent-browser`** — drive a real browser against `localhost` to navigate the recruiter workspace, the public job board (`/c/{org-slug}`), and the candidate interview, fill forms, click, and screenshot. Use it to verify UI work, do exploratory/QA testing, and dogfood flows. Prefer it over any built-in browser/web tooling.
+- **`web-design-guidelines`** — review/audit UI code against Web Interface Guidelines (accessibility, performance, UX). Run it on changed UI components before considering frontend work done.
+
+Loop: build → `agent-browser` to see it render and behave → `web-design-guidelines` to audit it → fix → repeat.
+
 Full guide: [docs/local-dev.md](./docs/local-dev.md).
 
 ## Working Agreement
