@@ -67,7 +67,7 @@ export function ReviewSidebar({
           aria-label="Refresh candidates"
           onClick={() => void load()}
         >
-          <ArrowsClockwise size={15} className={loading ? 'spin' : ''} />
+          <ArrowsClockwise size={15} className={loading ? 'spin' : ''} aria-hidden="true" />
         </button>
       </div>
 
@@ -97,6 +97,7 @@ export function ReviewSidebar({
             weight="duotone"
             color="var(--muted-2)"
             style={{ marginBottom: 8 }}
+            aria-hidden="true"
           />
           <p style={{ margin: 0 }}>
             {data && data.applicationCount > 0

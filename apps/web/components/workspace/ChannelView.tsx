@@ -125,7 +125,7 @@ export function ChannelView({
     <main className={styles.main}>
       <div className={styles.chatPane}>
         <header className={styles.chatHead}>
-          <Hash size={18} color="var(--muted-2)" weight="bold" />
+          <Hash size={18} color="var(--muted-2)" weight="bold" aria-hidden="true" />
           <div>
             <div className={styles.chatTitle}>{channelName}</div>
             <div className={styles.chatSub}>Channel agent · reads your connected context</div>
@@ -171,10 +171,15 @@ export function ChannelView({
               <div className={`${styles.avatar} ${styles.avatarAgent}`} aria-hidden="true">
                 Y
               </div>
-              <div className={styles.typing} aria-live="polite">
-                <span className={styles.dot} />
-                <span className={styles.dot} />
-                <span className={styles.dot} />
+              <div
+                className={styles.typing}
+                role="status"
+                aria-live="polite"
+                aria-label="Channel agent is responding"
+              >
+                <span className={styles.dot} aria-hidden="true" />
+                <span className={styles.dot} aria-hidden="true" />
+                <span className={styles.dot} aria-hidden="true" />
               </div>
             </div>
           )}
@@ -215,7 +220,7 @@ export function ChannelView({
               disabled={sending || !input.trim()}
               aria-label="Send message"
             >
-              <PaperPlaneRight size={17} weight="fill" />
+              <PaperPlaneRight size={17} weight="fill" aria-hidden="true" />
             </button>
           </form>
         </div>

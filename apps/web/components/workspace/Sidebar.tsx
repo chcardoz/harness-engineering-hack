@@ -95,7 +95,7 @@ export function Sidebar({
           aria-label="Create job channel"
           onClick={() => setCreating((v) => !v)}
         >
-          <Plus size={15} weight="bold" />
+          <Plus size={15} weight="bold" aria-hidden="true" />
         </button>
       </div>
 
@@ -150,7 +150,7 @@ export function Sidebar({
                 activeId === c.id ? styles.channelItemActive : ''
               }`}
             >
-              <Hash size={15} className={styles.hash} weight="bold" />
+              <Hash size={15} className={styles.hash} weight="bold" aria-hidden="true" />
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {c.name}
               </span>
@@ -166,7 +166,7 @@ export function Sidebar({
           className={styles.channelItem}
           style={{ margin: '0 10px 6px' }}
         >
-          <ArrowUpRight size={15} className={styles.hash} weight="bold" />
+          <ArrowUpRight size={15} className={styles.hash} weight="bold" aria-hidden="true" />
           <span>View public board</span>
         </Link>
       )}
@@ -176,7 +176,7 @@ export function Sidebar({
           {userName}
         </div>
         <button type="button" className={styles.signOut} onClick={handleSignOut}>
-          <SignOut size={14} /> Sign out
+          <SignOut size={14} aria-hidden="true" /> Sign out
         </button>
       </div>
     </aside>

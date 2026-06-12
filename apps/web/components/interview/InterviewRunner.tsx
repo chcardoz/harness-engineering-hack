@@ -80,7 +80,14 @@ export function InterviewRunner({ sessionId }: { sessionId: string }) {
             </span>
             <span>{Math.round(pct)}%</span>
           </div>
-          <div className={styles.progressTrack}>
+          <div
+            className={styles.progressTrack}
+            role="progressbar"
+            aria-label="Interview progress"
+            aria-valuenow={Math.round(pct)}
+            aria-valuemin={0}
+            aria-valuemax={100}
+          >
             <div className={styles.progressBar} style={{ width: `${pct}%` }} />
           </div>
         </div>
@@ -88,8 +95,8 @@ export function InterviewRunner({ sessionId }: { sessionId: string }) {
 
       <main className={styles.stage}>
         {busy && !step && (
-          <div className={styles.loading}>
-            <CircleNotch size={20} className="spin" />
+          <div className={styles.loading} aria-live="polite">
+            <CircleNotch size={20} className="spin" aria-hidden="true" />
             Preparing your interview…
           </div>
         )}
@@ -111,8 +118,8 @@ export function InterviewRunner({ sessionId }: { sessionId: string }) {
               onAction={(a) => void submit(a)}
             />
             {busy && (
-              <div className={styles.loading} style={{ padding: '24px 0' }}>
-                <CircleNotch size={18} className="spin" />
+              <div className={styles.loading} style={{ padding: '24px 0' }} aria-live="polite">
+                <CircleNotch size={18} className="spin" aria-hidden="true" />
                 Saving…
               </div>
             )}

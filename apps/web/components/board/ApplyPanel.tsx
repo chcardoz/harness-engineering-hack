@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { ArrowRight } from '@phosphor-icons/react';
 import s from './board.module.css';
 
@@ -15,6 +15,7 @@ export default function ApplyPanel({ orgSlug, jobSlug, roleTitle }: ApplyPanelPr
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const emailRef = useRef<HTMLInputElement>(null);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -23,6 +24,7 @@ export default function ApplyPanel({ orgSlug, jobSlug, roleTitle }: ApplyPanelPr
     const trimmedEmail = email.trim();
     if (!trimmedEmail.includes('@')) {
       setError('Enter a valid email address.');
+      emailRef.current?.focus();
       return;
     }
 
@@ -78,10 +80,13 @@ export default function ApplyPanel({ orgSlug, jobSlug, roleTitle }: ApplyPanelPr
             Email
           </label>
           <input
+            ref={emailRef}
             id="apply-email"
             type="email"
             name="email"
             autoComplete="email"
+            inputMode="email"
+            spellCheck={false}
             required
             className={`${s.input} ${hasError ? s.inputError : ''}`}
             placeholder="you@example.com"

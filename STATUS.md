@@ -51,7 +51,7 @@ Legend: ⬜ todo · 🟡 in progress · ✅ done · 🧪 needs test/lint · ⛔ 
 - ✅ `render.yaml` blueprint — `web` (Next.js, healthCheck `/api/health`), `worker`, `cron` (`*/30`), Postgres, Key Value. Secrets `sync:false`; `DATABASE_URL`/`REDIS_URL` wired `fromDatabase`/`fromService`. node-postgres driver swap remains the documented packages/db TODO.
 - ✅ Seed script (`pnpm --filter @yougrep/db seed`) — recruiter `demo@yougrep.dev` / `yougrep-demo-1234`, org **Northwind Data** (`northwind-data`), connectors, "Senior Postgres Engineer" channel **published through the real agent path**, and **3 candidates with a full recommendation spread**: Priya 100 "Strong yes" / Marcus 52 "Maybe" / Sofia 40 "No" — exercises all three scorecard states. Verified end-to-end in agent-browser (login → workspace → populated review sidebar).
 
-  - **FIX (shared local DB):** relative `PGLITE_DATA_DIR` resolved against each package's cwd, so `pnpm --filter` gave web / worker / seed three *isolated* `.data/pglite` databases. `getEnv()` now anchors a relative data dir to the monorepo root (walks up for `pnpm-workspace.yaml`); absolute paths (vitest temp dirs) pass through. One shared DB across all processes.
+  - **FIX (shared local DB):** relative `PGLITE_DATA_DIR` resolved against each package's cwd, so `pnpm --filter` gave web / worker / seed three _isolated_ `.data/pglite` databases. `getEnv()` now anchors a relative data dir to the monorepo root (walks up for `pnpm-workspace.yaml`); absolute paths (vitest temp dirs) pass through. One shared DB across all processes.
   - **FIX (fresh-login org):** `getSessionContext` resolved org only from `session.activeOrganizationId`, so any account without an active org set (seed-provisioned, or a returning user on a recreated session) hit `/onboarding` despite valid membership. Now falls back to the user's oldest membership — still membership-gated.
 
 ## Phase 4 — Quality gates (MAIN LOOP)
@@ -59,7 +59,7 @@ Legend: ⬜ todo · 🟡 in progress · ✅ done · 🧪 needs test/lint · ⛔ 
 - ✅ Typecheck + lint + format across repo; fix all (both typechecks, eslint --max-warnings 0, prettier --check clean)
 - ✅ Unit + integration + contract tests pass (47 tests)
 - ✅ agent-browser walkthrough of full demo flow (ONE session) — signup → org → channel → draft → publish (confirm gate) → board → apply → interview (5 exercises) → review scorecard. Caught + fixed the server/client boundary bug above.
-- ⬜ web-design-guidelines audit on changed UI; fix
+- ✅ web-design-guidelines audit (Web Interface Guidelines) on changed UI; fixes landed. Already strong (global `:focus-visible` ring, `prefers-reduced-motion`, labeled forms, `aria-invalid`/`role="alert"`, semantic OpenUI components confirmed via a11y tree). Fixed: `transition: all` → explicit props; focus-first-error + `inputMode`/`spellCheck={false}` on the apply email; `role="progressbar"` + `aria-valuenow` on interview progress; `aria-live` on interview loading; `aria-hidden` on decorative Phosphor icons (Phosphor renders role-less svg, no default hiding); `role="status"` + `aria-label` on the chat typing indicator.
 - ⬜ Final commit + README
 
 ## Git commits (landed)
