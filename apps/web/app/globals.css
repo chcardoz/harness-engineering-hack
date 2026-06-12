@@ -28,7 +28,7 @@
 
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, 'SF Mono', Menlo, monospace;
-  --font-pixel: var(--font-pixel), var(--font-geist-sans), sans-serif;
+  --font-pixel: var(--font-pixel-src), var(--font-geist-sans), sans-serif;
 
   --ring: 0 0 0 3px var(--accent-wash);
 }

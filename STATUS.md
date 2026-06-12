@@ -32,7 +32,7 @@ Legend: ⬜ todo · 🟡 in progress · ✅ done · 🧪 needs test/lint · ⛔ 
 
 ## Phase 2 — Web app surfaces (mix; UI in main loop w/ agent-browser)
 
-- ⬜ Landing page — clean, Geist + pixel hero, motion animations, connector/company/stack logos, footer
+- ✅ Landing page — clean, Geist + Pixelify hero wordmark (green "grep" accent), motion animations, connector/company/stack logos, footer. Verified in agent-browser.
 - ⬜ Auth pages (sign up / sign in / create org)
 - ⬜ Recruiter workspace shell (Slack-like sidebar, channel list, create channel)
 - ⬜ Channel chat + agent + OpenUI rendering + publish flow (confirm gate)
@@ -57,4 +57,6 @@ Legend: ⬜ todo · 🟡 in progress · ✅ done · 🧪 needs test/lint · ⛔ 
 
 ## Git commits (landed)
 
-- (none yet — buildout in progress)
+- `Phase 0: monorepo foundation — config, db (PGlite/Drizzle), auth (Better Auth), web boot`
+- `Phase 1a: integrations, domain, openui packages + landing page`
+- `Landing: fix hero pixel font (Pixelify Sans via --font-pixel-src)`
