@@ -38,7 +38,7 @@ Use Guild for governed production execution from day one:
 - interview agent identity and versioning.
 - scoped connector permissions.
 - audit trail for every agent action.
-- approval gates for mutations.
+- approval gates for mutations, such as publishing a job posting to the org's own Yougrep job board after confirmation.
 - versioned agent behavior.
 - shared internal agent templates.
 

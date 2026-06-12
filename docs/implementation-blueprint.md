@@ -50,8 +50,8 @@ yougrep/
       src/
         airbyte/
         notion/
-        greenhouse/
-        ashby/
+        greenhouse/   # read/import only
+        ashby/        # read/import only
   packages/
     agents/
       src/
@@ -89,7 +89,7 @@ yougrep/
         truefoundry.ts
         openai-realtime.ts
         airbyte.ts
-        greenhouse.ts
+        greenhouse.ts # read/import only
     config/
       src/
         env.ts
@@ -121,8 +121,8 @@ Runs on Render as a background worker.
 
 Responsibilities:
 
-- long-running connector syncs.
-- post-job-to-ATS jobs.
+- long-running connector syncs (read-only).
+- publish/refresh the org's own job board postings.
 - transcript summarization.
 - candidate scoring/rubric extraction.
 - digest generation.
@@ -145,7 +145,7 @@ If Airbyte can be called cleanly from TypeScript/API, skip this service for MVP.
 Deploy Yougrep to Render as a small multi-service app defined by `render.yaml`. Render Blueprints are the infrastructure-as-code layer for declaring interconnected services, databases, and environment groups. The first deployment should include:
 
 - `web`: Next.js web service for recruiter UI, candidate interview UI, API routes, auth routes, and realtime/session bootstrap.
-- `worker`: background worker for long-running jobs such as ATS posting, transcript finalization, summaries, and connector refreshes.
+- `worker`: background worker for long-running jobs such as publishing/refreshing the org's own job board, transcript finalization, summaries, and connector refreshes.
 - `cron`: scheduled cleanup/sync/digest jobs.
 - `postgres`: Render Postgres as the transactional source of truth.
 - optional `connector-worker`: only if Airbyte/Python connector execution needs its own service.
@@ -161,7 +161,7 @@ Official Render docs:
 
 ## Platform Connections
 
-Connections to external platforms are configured through server-side environment variables plus Airbyte-hosted connector records. In the recommended Airbyte hosted mode, Yougrep does not store Slack, Notion, Greenhouse, or Ashby OAuth secrets directly. Airbyte stores those connector credentials securely and handles token refresh; Yougrep stores Airbyte credentials and connector IDs/references.
+Connections to external platforms are configured through server-side environment variables plus Airbyte-hosted connector records. All external connectors are read-only: Yougrep hosts its own job board and does not write to external ATSs, so no per-tenant ATS write credentials are stored. In the recommended Airbyte hosted mode, Yougrep does not store Slack, Notion, Greenhouse, or Ashby OAuth secrets directly. Airbyte stores those read connector credentials securely and handles token refresh; Yougrep stores Airbyte credentials and connector IDs/references.
 
 ```text
 BETTER_AUTH_SECRET
@@ -184,7 +184,8 @@ Connection ownership:
 - Guild owns agent definitions, agent versions, tool scopes, and agent traces.
 - TrueFoundry owns model-provider gateway credentials for non-realtime LLM calls.
 - OpenAI owns GPT Realtime 2 voice sessions; the backend creates ephemeral credentials for browser WebRTC.
-- Airbyte owns connector execution and hosted connector credentials for Notion, Slack, GitHub, Greenhouse/Ashby.
+- Airbyte owns read-only connector execution and hosted connector credentials for Notion, Slack, GitHub, and optional Greenhouse/Ashby imports. Yougrep never writes to external ATSs.
+- Yougrep owns its public job board: orgs, job listings, board postings, candidates, applications, and interviews live in Postgres.
 - Postgres stores connector account metadata, organization scope, Airbyte connector IDs, connection status, and product records.
 - ClickHouse, if enabled, receives append-only analytics/traces from workers or backend instrumentation.
 
@@ -194,6 +195,19 @@ Exceptions:
 
 - If using self-managed Airbyte, Marketplace/custom connectors, or OAuth override credentials, Yougrep may need to provide third-party OAuth app client IDs/secrets to Airbyte setup. Even then, those secrets should be server-side Render env vars or manually configured in Airbyte, not exposed to the browser.
 - If Yougrep builds its own native Slack app outside Airbyte for notifications or interactive Slack surfaces, then Slack app credentials become Yougrep-owned. That is not the default connector architecture.
+
+## Owned Job Board
+
+Yougrep hosts its own public job board rather than posting jobs to external ATSs. Airbyte agent connectors for Greenhouse/Ashby are read-only (they cannot create/publish job posts, update application status, schedule interviews, or send offers), and native ATS write APIs would require per-tenant long-lived credential storage, partner considerations, and (for Ashby) there is no public job-post publish endpoint. Owning the board removes the only hard blocker and unifies the public job page with the candidate interview entry point.
+
+- Each org gets a public, unauthenticated job board at a clean slug `/c/{org-slug}` listing its open roles; each role at `/c/{org-slug}/{job-slug}` with a "Start interview" CTA.
+- Viewing is public and crawlable (clean slugs). Starting an interview is lightly gated (candidate email/magic-link); the backend then creates the `interview_session` and mints the ephemeral GPT Realtime 2 credential.
+- Postgres is the system of record for orgs, job listings, board postings, candidates, applications, and interviews.
+
+Deferred (future, not current capability):
+
+- Distribution: a self-hosted board has no inbound candidate traffic on its own; cross-posting/syndication is later.
+- ATS write-back (native Greenhouse Harvest API, or a unified API like Kombo) is deferred until a real customer requires it.
 
 ## Postgres Shape
 
@@ -217,7 +231,7 @@ tool_calls
 openui_artifacts
 
 job_listings
-ats_postings
+job_board_postings
 
 candidates
 applications
@@ -233,6 +247,8 @@ candidate_rankings
 
 audit_events
 ```
+
+`job_board_postings` holds internal postings on Yougrep's own public job board (tenant-scoped via `organization_id`), with a posting `status` (`draft`/`published`), a public `slug`, and `published_at`.
 
 ### Key Relationships
 
@@ -304,9 +320,9 @@ Lives behind the recruiter chat.
 Responsibilities:
 
 - understand the job channel history.
-- read company context through Airbyte.
+- read company context through Airbyte (read-only).
 - draft and revise job listings.
-- post to ATS after confirmation.
+- publish a posting to the org's own Yougrep job board after confirmation.
 - summarize candidates.
 - compare applicants with transcript evidence.
 - render recruiter-facing OpenUI components.
@@ -402,7 +418,7 @@ Tools are declared by purpose and scoped:
 
 - read-only Notion context.
 - read-only GitHub context.
-- create/update ATS posting only after recruiter confirmation.
+- publish a job posting to the org's own Yougrep job board only after recruiter confirmation.
 - no candidate rejection/send-outreach mutation without human confirmation.
 
 Guild should enforce tool scope at the agent level. The backend should enforce organization and workflow checks as a second layer.
@@ -442,7 +458,7 @@ React chat input
   -> Postgres load channel context
   -> Guild job-channel agent
   -> TrueFoundry LLM call
-  -> Airbyte tool calls if needed
+  -> Airbyte read-only context tool calls if needed
   -> Postgres persist message/tool output/OpenUI artifact
   -> React renders chat + OpenUI component
 ```
@@ -450,7 +466,7 @@ React chat input
 ### Candidate Voice Interview
 
 ```text
-Candidate opens apply link
+Candidate opens role on the org's job board (/c/{org-slug}/{job-slug}) and starts interview (email/magic-link gate)
   -> Next.js creates interview_session
   -> backend loads interview_plan
   -> backend creates GPT Realtime 2 ephemeral session
@@ -479,8 +495,9 @@ Recruiter asks "who is best?"
 4. Job channels and channel messages.
 5. Guild job-channel agent with TrueFoundry model calls.
 6. OpenUI recruiter components.
-7. Airbyte Notion and Greenhouse/Ashby tools.
-8. Candidate apply page and text interview.
-9. Interview result package and recruiter review sidebar.
-10. GPT Realtime 2 voice interview.
-11. ClickHouse traces if needed.
+7. Airbyte Notion/GitHub/Slack reads (read-only; optional Greenhouse/Ashby import as context).
+8. Owned public job board: publish/refresh postings and the public `/c/{org-slug}` and `/c/{org-slug}/{job-slug}` pages.
+9. Candidate apply/start-interview flow (email/magic-link gate) and text interview.
+10. Interview result package and recruiter review sidebar.
+11. GPT Realtime 2 voice interview.
+12. ClickHouse traces if needed.

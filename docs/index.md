@@ -9,6 +9,7 @@ This folder contains stack research for the recruiter-agent MVP. No application 
 - [ClickHouse](./clickhouse.md): optional analytics, observability, and trace store.
 - [Guild AI](./guild-ai.md): agent control plane for the job-channel and interview agents.
 - [Implementation Blueprint](./implementation-blueprint.md): language, repo shape, database shape, agent wiring, and compartmentalization.
+- [Job Board](./job-board.md): the owned public job board that replaces external ATS posting.
 - [OpenUI](./openui.md): generative UI renderer for chat/interview surfaces.
 - [Product Stack Overview](./product-stack-overview.md): how the product feels and how the stack fits together.
 - [Render](./render.md): app hosting and managed Postgres.
@@ -24,7 +25,8 @@ For the simplest end-to-end MVP, start with:
 - Postgres
 - Better Auth
 - OpenUI
-- Airbyte
+- Airbyte (read-only connectors for job context; never writes to external ATSs)
+- Yougrep's own public job board (replaces posting to external ATSs)
 - Guild for agent control
 - TrueFoundry for LLM gateway/model routing
 - GPT Realtime 2 for voice interviews

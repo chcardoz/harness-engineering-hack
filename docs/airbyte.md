@@ -38,12 +38,14 @@ Strong ready fits:
 - GitHub: repositories, issues, PRs, commits, comments, and codebase/project context.
   - Replication: https://docs.airbyte.com/integrations/sources/github
   - Agent connector: https://docs.airbyte.com/ai-agents/connectors/github
-- Greenhouse: candidates, applications, jobs, offers, job posts, interviews, scorecards, scheduled interviews.
+- Greenhouse (READ-ONLY): candidates, applications, jobs, offers, job posts, interviews, scorecards, scheduled interviews are readable streams. The Greenhouse agent and replication connectors are read-only — they cannot create/publish job postings, update application status, schedule interviews, or send offers.
   - Replication: https://docs.airbyte.com/integrations/sources/greenhouse
   - Agent connector: https://docs.airbyte.com/ai-agents/connectors/greenhouse
-- Ashby: candidates, applications, jobs, postings, sources, custom fields, feedback forms.
+- Ashby (READ-ONLY): candidates, applications, jobs, postings, sources, custom fields, feedback forms are readable streams. The Ashby agent and replication connectors are read-only — no write/publish operations.
   - Replication: https://docs.airbyte.com/integrations/sources/ashby
   - Agent connector: https://docs.airbyte.com/ai-agents/connectors/ashby
+
+Unlike the Notion, Slack, and GitHub agent connectors (which do support writes — create pages/messages/issues), the Greenhouse and Ashby connectors expose reads only.
 
 Potential ATS connectors mostly through replication/marketplace:
 
@@ -65,17 +67,17 @@ Use Airbyte for:
 
 - connecting a company's Notion, Slack, GitHub, and ATS.
 - reading context for a job/channel.
-- creating or updating Greenhouse/Ashby records.
-- posting Slack updates when the app needs to notify a team.
+- reading/importing a customer's existing Greenhouse/Ashby jobs/candidates as context only — never writing back (these connectors are read-only).
+- posting Slack updates when the app needs to notify a team (Slack agent writes are real and supported).
 - syncing larger corpora into Postgres/vector search for retrieval.
 
-For the MVP job-posting flow, Greenhouse and Ashby are better targets than LinkedIn because Airbyte has explicit ATS connector support for them.
+For the MVP job-posting flow, Yougrep posts to its OWN public job board, not to an external ATS. Each org gets a public board at `/c/{org-slug}` listing its roles, each role page has a "Start interview" CTA, and Postgres is the system of record. Greenhouse and Ashby are read-only import sources for context, not posting targets — Airbyte cannot publish or update postings in either.
 
 ## Suggested Split
 
 Realtime agent actions:
 
-- Airbyte agent connectors for Notion reads, Slack updates, GitHub reads, Greenhouse job/application operations.
+- Airbyte agent connectors for Notion reads, Slack updates, GitHub reads, and read-only Greenhouse/Ashby imports.
 
 Background indexing:
 
@@ -89,7 +91,9 @@ Background indexing:
 - OAuth/connector setup must be tenant-scoped per organization.
 - Agents should not receive broad connector powers. Use least-privilege scopes and explicit confirmations.
 - LinkedIn recruiting/job-board posting is not covered by the Airbyte connector set found.
+- The Greenhouse and Ashby connectors (both agent and replication) are read-only. They cannot create/publish job postings, update application status, schedule interviews, or send offers. Treat them as import/context sources only.
+- ATS write-back into a customer's Greenhouse/Ashby is deferred until a real customer requires it. If/when needed it would use native ATS write APIs (Greenhouse Harvest API) or a unified API like Kombo — not Airbyte. Note Ashby has no public API to publish a job posting to its board (UI-only), and Greenhouse Harvest can flip an existing job post live but needs the post object to already exist.
 
 ## MVP Recommendation
 
-Use Airbyte Agents for live tool access and Greenhouse or Ashby as the first ATS/job-board-like integration. Defer full replication until the first demo needs historical search across large Notion/Slack/GitHub content.
+Use Airbyte Agents for live tool access. Yougrep's own public job board (`/c/{org-slug}`, Postgres as system of record) is the posting surface — not an external ATS. Airbyte provides read-only context: Notion/GitHub reads, Slack reads plus optional notifications, and optional read-only import of a customer's existing Greenhouse/Ashby jobs/candidates. Defer full replication until the first demo needs historical search across large Notion/Slack/GitHub content.

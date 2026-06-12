@@ -20,6 +20,7 @@ Sources:
 - Platform overview: https://www.truefoundry.com/docs/platform/overview
 - AI Gateway introduction: https://www.truefoundry.com/docs/ai-gateway/intro-to-llm-gateway
 - Quick start and OpenAI SDK usage: https://www.truefoundry.com/docs/ai-gateway/quick-start
+- Realtime API routing: https://www.truefoundry.com/docs/ai-gateway/realtime-api
 - Gateway deployment: https://www.truefoundry.com/docs/platform/deploy-control-plane-and-gateway-plane
 
 ## Fit For Yougrep MVP
@@ -50,7 +51,7 @@ This keeps the app model-provider-agnostic while preserving normal SDK ergonomic
 ## Risks And Caveats
 
 - It may be heavier than direct OpenAI calls if the MVP only calls one model provider, but in this stack it provides the intended gateway/observability layer.
-- It does not replace a voice stack. It can broker LLM calls, but realtime voice still needs STT/TTS/realtime audio orchestration.
+- It does not replace a voice stack. It can broker LLM calls, but realtime voice still needs STT/TTS/realtime audio orchestration. As of June 2026 the AI Gateway does explicitly support OpenAI Realtime routing and native WebSocket passthrough for voice providers (e.g. Cartesia Sonic/Ink, Resemble AI); note that voice/audio is bridged via native WebSocket passthrough (HTTP Upgrade handshake) rather than the OpenAI-compatible schema translation used for text, so it is not a drop-in text-style integration.
 - It overlaps somewhat with Guild on governance/observability. The split should be: TrueFoundry for model gateway/provider routing; Guild for agent/tool access governance if both are used.
 
 ## MVP Recommendation

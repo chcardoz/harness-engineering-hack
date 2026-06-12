@@ -6,8 +6,8 @@ Yougrep is a recruiter-agent workspace for companies hiring technical talent. It
 
 The product has two main surfaces:
 
-- Company/recruiter workspace: a Slack-like dashboard for creating job channels, connecting company tools, generating job listings, reviewing candidates, and asking the agent questions.
-- Candidate interview surface: a one-click apply flow that opens a live GPT Realtime 2 interview with generated UI exercises from OpenUI.
+- Company/recruiter workspace: a Slack-like dashboard for creating job channels, connecting company tools, generating job listings, publishing roles to Yougrep's own job board, reviewing candidates, and asking the agent questions.
+- Candidate interview surface: a one-click apply flow, reached from Yougrep's own public job board, that opens a live GPT Realtime 2 interview with generated UI exercises from OpenUI.
 
 ## What It Feels Like
 
@@ -25,7 +25,7 @@ The user creates a channel like `postgres-engineer`. Inside the channel, they ta
 - "Read the Notion doc about what we want."
 - "Look at our GitHub repos and infer what database work this person will do."
 - "Draft the listing."
-- "Post it to Greenhouse."
+- "Publish it to our job board."
 
 The agent responds conversationally, but important outputs are rendered as OpenUI components:
 
@@ -33,14 +33,16 @@ The agent responds conversationally, but important outputs are rendered as OpenU
 - requirement checklists.
 - connector status panels.
 - candidate comparison tables.
-- posting confirmation controls.
+- job board publishing controls.
 - interview summary cards.
 
 The company side should feel like an operations tool, not a marketing website: fast, scannable, restrained, and built for repeated hiring workflows.
 
 ### Candidate
 
-The candidate sees a job listing on the ATS/job board. Instead of a long resume upload flow, there is a "skip the line" or "one-click interview" entry point.
+The candidate sees a job listing on Yougrep's own public job board. Each organization gets a public, unauthenticated board at a clean slug `/c/{org-slug}` listing its open roles, and each role has a public page `/c/{org-slug}/{job-slug}` with role details. Viewing is public and crawlable. Instead of a long resume upload flow, the role page has a "skip the line" or "one-click interview" entry point ("Start interview"). Starting an interview is lightly gated (candidate email / magic-link) so the session attaches to a candidate; the backend then creates the interview_session and mints the ephemeral GPT Realtime 2 credential.
+
+A self-hosted board has no inbound candidate traffic on its own, so cross-posting and syndication to external boards is a later concern.
 
 When they start, they enter a focused browser interview:
 
@@ -97,6 +99,7 @@ Postgres is the source of truth:
 - channel messages.
 - connector accounts.
 - job listings.
+- board postings (the org's public job board and per-role public pages).
 - candidates and applications.
 - interview sessions and turns.
 - rubric scores.
@@ -116,12 +119,13 @@ Docs: https://www.better-auth.com/docs/plugins/organization
 
 Airbyte is the connector layer.
 
-Use Airbyte agent connectors for realtime tool access:
+Use Airbyte agent connectors for realtime, read-only tool access:
 
 - read Notion role docs.
 - inspect Slack/GitHub context if connected.
-- post or update Greenhouse/Ashby records.
-- retrieve ATS candidate/job/application data.
+- optionally import a customer's existing Greenhouse/Ashby jobs/candidates as context.
+
+Airbyte never writes to an ATS. The Greenhouse/Ashby agent connectors are read-only (they cannot create or publish job posts, update application status, schedule interviews, or send offers), so Yougrep does not post jobs to external ATSs; it publishes to its own job board instead. ATS write-back into a customer's Greenhouse/Ashby (via the native Greenhouse Harvest API or a unified API like Kombo) is deferred until a real customer requires it.
 
 Use replication connectors later only when the app needs larger historical search or analytics syncs.
 
@@ -140,7 +144,7 @@ Company-side examples:
 - `CandidateCard`
 - `CandidateComparisonTable`
 - `InterviewSummary`
-- `PostToATSConfirmation`
+- `PublishJobPosting`
 
 Candidate-side examples:
 
@@ -187,9 +191,12 @@ It handles:
 
 In the Slack-like company chat, the Guild-managed job-channel agent should call models through TrueFoundry's OpenAI-compatible gateway. The browser never calls TrueFoundry directly; all calls go through the Yougrep backend/Guild runtime so tenant checks, tool scopes, and traces stay controlled.
 
-For the voice interview itself, GPT Realtime 2 should be called through the OpenAI Realtime path unless TrueFoundry explicitly supports that realtime mode in the target environment.
+For the voice interview itself, the design stays the same: the browser connects to the GPT Realtime 2 voice session over WebRTC using a backend-minted ephemeral credential. As of June 2026, TrueFoundry's AI Gateway does explicitly support OpenAI Realtime routing, so routing the realtime session through TrueFoundry is now an option rather than a bypass. Note that voice/audio goes through native WebSocket passthrough (an HTTP Upgrade handshake bridging frames), not the OpenAI-compatible schema translation used for text, so it is not a drop-in text-style integration.
 
-Docs: https://www.truefoundry.com/docs/ai-gateway/intro-to-llm-gateway
+Docs:
+
+- AI Gateway introduction: https://www.truefoundry.com/docs/ai-gateway/intro-to-llm-gateway
+- Realtime API routing: https://www.truefoundry.com/docs/ai-gateway/realtime-api
 
 ### ClickHouse
 
@@ -235,7 +242,7 @@ The Slack-like UI uses this path:
 4. Backend invokes the Guild-managed job-channel agent.
 5. Guild runs the correct agent version with scoped access.
 6. The agent calls the LLM through TrueFoundry.
-7. The agent calls Airbyte tools when it needs connector data/actions.
+7. The agent calls Airbyte tools when it needs read-only connector context.
 8. The agent returns normal text plus OpenUI Lang.
 9. Backend stores the turn in Postgres.
 10. Frontend renders the answer as chat text plus rich OpenUI components.
@@ -246,13 +253,13 @@ That is the core product loop.
 
 1. Company user signs in through Better Auth.
 2. User creates an organization or joins one.
-3. User connects Notion and Greenhouse/Ashby through Airbyte.
+3. User connects Notion (and optionally imports existing Greenhouse/Ashby jobs/candidates as context) through Airbyte, read-only.
 4. User creates a job channel.
 5. The channel agent reads conversation context and connector context.
-6. OpenUI renders a job draft and confirmation UI.
-7. Recruiter confirms posting.
-8. Backend posts the job through the ATS connector.
-9. Candidate clicks one-click apply.
+6. OpenUI renders a job draft and publishing UI.
+7. Recruiter confirms publishing.
+8. Backend publishes the job to the org's own Yougrep job board (`/c/{org-slug}/{job-slug}`).
+9. Candidate opens the public job page and clicks "Start interview" (one-click apply).
 10. Backend creates an interview session in Postgres.
 11. Backend creates an ephemeral GPT Realtime 2 session credential.
 12. Candidate browser connects to GPT Realtime 2 over WebRTC.
@@ -263,7 +270,7 @@ That is the core product loop.
 
 ## Deployment Blurb
 
-Deploy Yougrep on Render as a Blueprint-backed multi-service app. The main `web` service runs the Next.js recruiter workspace, candidate interview pages, API routes, Better Auth routes, and GPT Realtime 2 session bootstrap. A separate `worker` service handles long-running jobs such as ATS posting, transcript finalization, candidate summaries, and connector refreshes. Cron jobs handle scheduled cleanup and sync. Render Postgres stores the product state, and services should use the internal database URL when they are in the same Render account and region.
+Deploy Yougrep on Render as a Blueprint-backed multi-service app. The main `web` service runs the Next.js recruiter workspace, candidate interview pages, API routes, Better Auth routes, and GPT Realtime 2 session bootstrap. A separate `worker` service handles long-running jobs such as job board publishing, transcript finalization, candidate summaries, and connector refreshes. Cron jobs handle scheduled cleanup and sync. Render Postgres stores the product state, and services should use the internal database URL when they are in the same Render account and region.
 
 Render environment variables hold Yougrep-owned credentials: Guild API keys, TrueFoundry gateway credentials, OpenAI API key, Airbyte credentials, Better Auth secret, and database URLs. In Airbyte hosted mode, Slack/Notion/GitHub/Greenhouse/Ashby connector credentials are handled by Airbyte, not stored directly by Yougrep. Yougrep stores Airbyte connector IDs and connection metadata in Postgres. Browser clients never receive long-lived secrets. Recruiter chat calls go browser -> Yougrep backend -> Guild -> TrueFoundry/Airbyte. Candidate voice calls go backend-created ephemeral credential -> browser WebRTC -> GPT Realtime 2.
 
@@ -276,7 +283,7 @@ Build in this order:
 3. Postgres data model for jobs, messages, candidates, interviews.
 4. Text-only channel agent.
 5. OpenUI job draft and candidate summary components.
-6. Airbyte Notion read and Greenhouse/Ashby post.
+6. Airbyte Notion read and publishing roles to the org's own Yougrep job board.
 7. Candidate text interview with OpenUI exercises.
 8. GPT Realtime 2 voice interview.
 9. Recruiter review sidebar.
