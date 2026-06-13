@@ -2,158 +2,252 @@
 
 **The recruiter workspace where every channel is a job.**
 
+Live app: [yougrep.vercel.app](https://yougrep.vercel.app/)
+
 Yougrep is a recruiter-agent workspace for companies hiring technical talent. It
-feels like a Slack workspace where **every channel is one job opening**, and each
-channel has a long-running agent that knows the role, your company context (via
-connectors), the candidates, and the interview history.
+feels like a Slack workspace where every channel is one job opening, and each
+channel has a long-running agent that knows the role, company context,
+connector data, candidates, and interview history.
 
-Two surfaces:
+Two surfaces are implemented:
 
-- **Recruiter workspace** — a Slack-like dashboard: create job channels, talk to
-  the channel agent, draft listings, publish to your org's own job board, and
-  review candidates with auto-generated scorecards.
-- **Candidate interview** — from the org's public job board, one click into a
-  structured interview with generated UI exercises (self-rating, SQL editor,
-  architecture prompts, a timed exercise), scored into a recommendation.
+- **Recruiter workspace** - create job channels, talk to the channel agent,
+  connect org context, draft listings, publish to the org's own job board, and
+  review candidates with generated scorecards.
+- **Candidate interview** - from the public job board, candidates can apply and
+  complete a structured interview with generated OpenUI exercises. Voice via
+  OpenAI Realtime remains the stretch path; the current demo uses the text/UI
+  interview flow.
 
-> The UI is rendered through **OpenUI** — the agent emits a validated document of
-> predefined components, never arbitrary model code. Mutations (publish, etc.)
-> require an explicit confirmation step.
+OpenUI is constrained: agents emit validated documents made from predefined
+components, never arbitrary model-generated code. Mutations such as publishing
+a job require explicit confirmation.
 
----
-
-## Quickstart (≈1 minute, no keys, no Docker)
+## Quickstart
 
 ```bash
 pnpm install
-pnpm --filter @yougrep/db reset   # fresh local database
-pnpm --filter @yougrep/db seed    # demo org + role + 3 interviewed candidates
-pnpm dev                          # http://localhost:3000
+pnpm db:reset
+pnpm db:seed
+pnpm dev
 ```
 
-Then sign in to the recruiter workspace:
+Open [localhost:3000](http://localhost:3000) and sign in:
 
 - **Email:** `demo@yougrep.dev`
 - **Password:** `yougrep-demo-1234`
 
-You'll land in the **Northwind Data** workspace with a published _Senior Postgres
-Engineer_ channel and three candidates already interviewed — a full
-recommendation spread in the review sidebar (Priya **Strong yes** · Marcus
-**Maybe** · Sofia **No**).
+The seed creates the **Northwind Data** workspace with a published **Senior
+Postgres Engineer** channel and three interviewed candidates. To try the
+candidate side locally, open
+[`/c/northwind-data`](http://localhost:3000/c/northwind-data), choose the role,
+and apply with any email.
 
-To try the candidate side, open the public board at
-[`/c/northwind-data`](http://localhost:3000/c/northwind-data), pick the role, and
-apply with any email to start a live interview.
+Requires Node 20+ and pnpm. The local loop defaults to `INTEGRATIONS_MODE=stub`
+and PGlite, so no API keys, Docker, or external services are needed.
 
-> Requires Node 20+ and pnpm. The local loop runs entirely on **PGlite**
-> (in-process Postgres, WASM) with all integrations **stubbed** — no external
-> services or API keys needed.
+## How Yougrep Works
 
----
-
-## How it works
-
-```
-Recruiter ─▶ Next.js web ─▶ Job-channel agent ─▶ Guild (trace) ─▶ TrueFoundry ─▶ provider
-                  │                  │
-                  │                  └─▶ OpenUI document (validated components)
-                  ▼
-              Postgres ◀── distilled job brief + rubric (handoff object) ──┐
-                  ▲                                                          │
-Candidate ─▶ Interview agent (isolated) ─▶ scores ─▶ result package ────────┘
+```mermaid
+flowchart LR
+  Recruiter["Recruiter"] --> Workspace["Recruiter workspace<br/>Next.js app"]
+  Workspace --> Channel["Job channel<br/>one role per channel"]
+  Channel --> Agent["Job-channel agent"]
+  Agent --> Draft["OpenUI draft cards<br/>requirements, listing, review"]
+  Draft --> Confirm["Explicit confirm gate"]
+  Confirm --> Board["Owned public job board<br/>/c/{org-slug}/{job-slug}"]
+  Board --> Candidate["Candidate apply + interview"]
+  Candidate --> Results["Scores, transcript turns,<br/>result package"]
+  Results --> Review["Recruiter review sidebar"]
+  Review --> Workspace
 ```
 
-- **Owned job board, not external ATS posting.** Yougrep hosts its own board at
-  `/c/{org-slug}` and `/c/{org-slug}/{job-slug}`. Connectors (Airbyte) are
-  **read-only** context; ATS write-back is deferred.
-- **Tenant boundary.** Every product query is scoped by `organization_id` and the
-  backend checks membership before returning anything.
-- **Agent isolation.** The interview agent never sees the raw recruiter thread or
-  full connector data — only a distilled brief + rubric, passed as persisted
-  handoff objects in Postgres.
-- **Model paths.** Text: backend → agent → TrueFoundry → provider. Voice (stretch):
-  browser → OpenAI Realtime over WebRTC using a backend-minted ephemeral
-  credential. The browser never holds long-lived secrets.
+```mermaid
+flowchart TB
+  subgraph App["apps/web"]
+    UI["React recruiter UI"]
+    API["Next.js API routes"]
+    Public["Public company board"]
+    Interview["Candidate interview UI"]
+  end
 
-The agents are **deterministic planners** that turn domain data into real OpenUI;
-in `live` mode `narrate()` exercises the TrueFoundry text path, and in `stub` mode
-it falls back to templates so the whole loop is reproducible offline.
+  subgraph Core["Workspace packages"]
+    Auth["@yougrep/auth<br/>Better Auth org tenancy"]
+    Domain["@yougrep/domain<br/>tenant-scoped workflows"]
+    Agents["@yougrep/agents<br/>job + interview agents"]
+    OpenUI["@yougrep/openui<br/>validated component docs"]
+    DB["@yougrep/db<br/>Drizzle schema"]
+  end
 
----
+  subgraph External["Live integrations"]
+    Guild["Guild<br/>agent run tracing/governance"]
+    Pioneer["Pioneer<br/>OpenAI-compatible text gateway"]
+    Composio["Composio<br/>GitHub / Notion / Linear OAuth tools"]
+    Realtime["OpenAI Realtime<br/>ephemeral WebRTC credentials"]
+    ClickHouse["ClickHouse<br/>analytics / SQL context"]
+  end
 
-## Monorepo layout
+  UI --> API
+  Public --> API
+  Interview --> API
+  API --> Auth
+  API --> Domain
+  Domain --> DB
+  API --> Agents
+  Agents --> OpenUI
+  Agents --> Guild
+  Agents --> Pioneer
+  Agents --> Composio
+  Agents --> ClickHouse
+  API --> Realtime
+  OpenUI --> UI
+  DB --> API
+```
 
-pnpm workspace; Next.js consumes the `@yougrep/*` packages as source (no per-package build).
+## Agent And Data Boundaries
 
-| Package                 | Role                                                                                                 |
-| ----------------------- | ---------------------------------------------------------------------------------------------------- |
-| `apps/web`              | Next.js 15 (Turbopack) — recruiter workspace, public board, candidate interview, API + auth routes   |
-| `apps/worker`           | Background reconciliation tier (poll loop + cron one-shot)                                           |
-| `packages/config`       | Env contract (zod) + shared constants                                                                |
-| `packages/db`           | Drizzle schema (22 tables), PGlite client singleton, embedded migration, `reset`/`seed` scripts      |
-| `packages/auth`         | Better Auth (Organization plugin) over Drizzle/PGlite + tenant permission helpers                    |
-| `packages/domain`       | Tenant-scoped data access: jobs, candidates, applications, interviews, postings, connectors, audit   |
-| `packages/integrations` | Guild / TrueFoundry / Airbyte / OpenAI Realtime adapters, each real **+** stub behind one interface  |
-| `packages/openui`       | OpenUI contract (zod-validated components) + recruiter/interview React libraries + renderer          |
-| `packages/agents`       | Job-channel agent (intent → OpenUI, draft, confirm-gated publish, review) + isolated interview agent |
+```mermaid
+sequenceDiagram
+  participant R as Recruiter
+  participant Web as Next.js backend
+  participant Auth as Better Auth
+  participant Job as Job-channel agent
+  participant Guild as Guild trace
+  participant Pioneer as Pioneer gateway
+  participant Tools as Composio / ClickHouse tools
+  participant Pg as Postgres
 
----
+  R->>Web: Send message in a job channel
+  Web->>Auth: Validate session + org membership
+  Web->>Pg: Store recruiter turn
+  Web->>Guild: Start traced agent run
+  Guild->>Job: Execute scoped job-channel agent
+  Job->>Pioneer: Plan / narrate / request tools
+  Job->>Tools: Read org-scoped context when allowed
+  Job->>Pg: Persist agent run + OpenUI response
+  Web-->>R: Render text + validated OpenUI components
+```
 
-## Stack
+```mermaid
+flowchart LR
+  RecruiterThread["Recruiter thread<br/>messages + connector context"]
+  Brief["Persisted handoff<br/>job brief + rubric only"]
+  InterviewAgent["Interview agent<br/>isolated module imports"]
+  CandidateSession["Candidate session<br/>turns + exercise answers"]
+  ResultPackage["Result package<br/>recommendation + evidence"]
+  Review["Recruiter review"]
 
-| Role                      | Choice                                                         |
-| ------------------------- | -------------------------------------------------------------- |
-| Language / app            | TypeScript, Next.js (web), Node worker                         |
-| Auth + tenancy            | Better Auth (Organization plugin)                              |
-| Source of truth           | Postgres (PGlite locally; managed Postgres on Render)          |
-| Generated UI              | OpenUI (predefined components only)                            |
-| Agent control plane       | Guild AI (run tracing)                                         |
-| LLM gateway (text)        | TrueFoundry (OpenAI-compatible)                                |
-| Voice interview (stretch) | OpenAI Realtime, WebRTC + backend ephemeral credential         |
-| Connectors                | Airbyte — read-only (Notion / GitHub / Slack context)          |
-| Hosting                   | Render (`render.yaml`: web, worker, cron, Postgres, Key Value) |
+  RecruiterThread --> Brief
+  Brief --> InterviewAgent
+  CandidateSession --> InterviewAgent
+  InterviewAgent --> ResultPackage
+  ResultPackage --> Review
+  RecruiterThread -.->|not exposed to interview agent| InterviewAgent
+```
 
----
+The tenant boundary is enforced in the domain layer: product queries are scoped
+by `organization_id`, and backend routes check membership before returning
+workspace data.
+
+## Current Stack
+
+| Role              | Current implementation                                                                  |
+| ----------------- | --------------------------------------------------------------------------------------- |
+| App               | TypeScript, Next.js 15, React 19, Turbopack                                             |
+| Workspace         | pnpm monorepo; `@yougrep/*` packages are consumed as source via `transpilePackages`     |
+| Auth + tenancy    | Better Auth with the Organization plugin                                                |
+| Database          | Drizzle over PGlite locally; Drizzle over `node-postgres` when `DATABASE_URL` is set    |
+| Agent runtime     | `@yougrep/agents`, wrapped in Guild run tracing and persisted `agent_runs`              |
+| Text LLM gateway  | Pioneer, OpenAI-compatible chat completions with tool calling                           |
+| Connectors        | Composio OAuth/tooling for org-scoped GitHub, Notion, and Linear connections            |
+| Generated UI      | OpenUI contract with zod validation and predefined recruiter/interview React components |
+| Voice path        | OpenAI Realtime `gpt-realtime-2` credential minting is wired; full voice UX is stretch  |
+| Analytics/context | ClickHouse env contract and tool-loop integration points                                |
+| Logging           | `@yougrep/logger`, pretty locally and JSON in production                                |
+| Hosting           | Live preview on Vercel; `render.yaml` remains a Render web-service blueprint            |
+
+TrueFoundry and Airbyte adapters are still present as legacy compatibility code
+until the docs/sweep step removes the old blueprint references. The active path
+in the app is Pioneer for text and Composio for connectors.
+
+## Runtime Shape
+
+```mermaid
+flowchart TB
+  subgraph Local["Local development"]
+    Dev["pnpm dev<br/>localhost:${CONDUCTOR_PORT:-3000}"]
+    PGlite["PGlite file DB<br/>.data/pglite"]
+    Stub["Stub integrations<br/>deterministic demo"]
+  end
+
+  subgraph Production["Live / deployable"]
+    Vercel["Vercel web app<br/>yougrep.vercel.app"]
+    Pg["Managed Postgres<br/>DATABASE_URL"]
+    Live["Live integrations<br/>Pioneer + Composio + OpenAI"]
+    Logs["Structured JSON logs"]
+  end
+
+  Dev --> PGlite
+  Dev --> Stub
+  Vercel --> Pg
+  Vercel --> Live
+  Vercel --> Logs
+```
+
+`render.yaml` currently defines a free-tier Render web launch. Worker and cron
+services are implemented in `apps/worker`, but are deferred in the Render
+blueprint because Render worker/cron tiers require a paid plan. Interview result
+packages are finalized inline; the worker is a reconciliation safety net.
+
+## Monorepo Layout
+
+| Package                 | Role                                                                                         |
+| ----------------------- | -------------------------------------------------------------------------------------------- |
+| `apps/web`              | Next.js app: landing, auth, recruiter workspace, public board, interview UI, API routes      |
+| `apps/worker`           | Reconciliation worker and one-shot cron entrypoint                                           |
+| `packages/config`       | Central env contract, root `.env` loading, integration mode resolution                       |
+| `packages/db`           | Drizzle schema, PGlite/managed Postgres client, embedded migrations, reset/seed scripts      |
+| `packages/auth`         | Better Auth setup and organization membership helpers                                        |
+| `packages/domain`       | Tenant-scoped data access for jobs, candidates, interviews, postings, connectors, audit      |
+| `packages/integrations` | Pioneer, Composio, Guild, OpenAI Realtime, ClickHouse-facing env paths, plus legacy adapters |
+| `packages/logger`       | Shared structured logger                                                                     |
+| `packages/openui`       | OpenUI schema, fixtures, safe server contract, React renderer/component libraries            |
+| `packages/agents`       | Job-channel agent, isolated interview agent, tool loop, scoring, rubric/plan builders        |
 
 ## Development
 
-A closed local loop — change code, run it fully locally with external services
-stubbed, observe deterministic pass/fail, iterate. Never test in production.
-
 ```bash
-pnpm typecheck        # packages (tsc -p tsconfig.json)
-pnpm typecheck:web    # apps/web
-pnpm lint             # eslint --max-warnings 0
-pnpm format:check     # prettier --check
-pnpm test             # vitest — 47 unit/integration/contract tests
-pnpm worker           # run the background worker (poll loop)
+pnpm typecheck
+pnpm typecheck:web
+pnpm lint
+pnpm format:check
+pnpm test
+pnpm worker
 ```
 
-All tests and the dev server default to `INTEGRATIONS_MODE=stub`, so no keys are
-required. The local PGlite database lives at `.data/pglite` (git-ignored) and is
-shared by every workspace process.
+Local development is designed as a closed loop: run the app locally, keep
+external services stubbed by default, observe deterministic pass/fail, and only
+flip individual integrations to `live` when testing real credentials.
 
-See [`docs/local-dev.md`](./docs/local-dev.md) for the full dev-loop guide
-(including the `agent-browser` and `web-design-guidelines` skills), and
-[`STATUS.md`](./STATUS.md) for the build log and the deliberate local-env
-decisions (PGlite, stub mode, Turbopack).
+Useful env switches live in [`.env.example`](./.env.example):
 
-### Deploying to Render
+- `INTEGRATIONS_MODE=stub` keeps the entire local loop offline.
+- `PIONEER_MODE=live` tests the text gateway without turning every service on.
+- `COMPOSIO_MODE=live` exercises connector OAuth.
+- `OPENAI_REALTIME_MODE=live` mints real Realtime credentials.
+- `DATABASE_URL` switches `@yougrep/db` from local PGlite to managed Postgres.
 
-[`render.yaml`](./render.yaml) is a Blueprint that provisions a `web` service, a
-`worker`, a `cron` job, managed Postgres, and a Key Value store. Secrets are
-declared `sync: false` — set them in the Render dashboard. (Swapping
-`packages/db`'s driver from PGlite to node-postgres for the `DATABASE_URL` path
-is the one documented TODO before a production launch.)
-
----
+See [`docs/local-dev.md`](./docs/local-dev.md) for the full dev-loop guide and
+[`STATUS.md`](./STATUS.md) for the build log.
 
 ## Documentation
 
-Design and stack docs live in [`docs/`](./docs/) — start at
-[`docs/index.md`](./docs/index.md). Architecture and build order are in
-[`docs/mvp-architecture.md`](./docs/mvp-architecture.md); the data model, agent
-wiring, and env vars are in
-[`docs/implementation-blueprint.md`](./docs/implementation-blueprint.md). The
-buildout's working agreement and architecture invariants are in
-[`AGENTS.md`](./AGENTS.md).
+Design and stack docs live in [`docs/`](./docs/) and some still describe the
+original June 2026 blueprint. For the currently implemented stack, trust this
+README, [`.env.example`](./.env.example), [`render.yaml`](./render.yaml), and the
+package source.
+
+Start with [`docs/index.md`](./docs/index.md),
+[`docs/mvp-architecture.md`](./docs/mvp-architecture.md), and
+[`docs/implementation-blueprint.md`](./docs/implementation-blueprint.md) when
+you need the original product rationale and build order.
