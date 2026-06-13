@@ -132,7 +132,11 @@ function makeRealClient(): ComposioClient {
       const composio = getComposio();
       log.info('initiate connection', { userId, toolkit });
       try {
-        const req = await composio.connectedAccounts.initiate(
+        // Composio retired connectedAccounts.initiate() for Composio-managed
+        // OAuth auth configs (HTTP 400, ConnectedAccount_BadRequest). The
+        // Connect Link endpoint (link()) is the supported replacement and
+        // returns the same { id, redirectUrl } ConnectionRequest shape.
+        const req = await composio.connectedAccounts.link(
           userId,
           authConfigId(toolkit),
           { callbackUrl },
